@@ -1,0 +1,173 @@
+# Kconfig settings for STM32 processors
+
+if MACH_STM32
+
+config BOARD_DIRECTORY
+    string
+    default "stm32"
+
+choice
+    prompt "Processor model"
+    config MACH_STM32F103
+        bool "STM32F103"
+        select MACH_STM32F1
+    config MACH_STM32F207
+        bool "STM32F207"
+        select MACH_STM32F2
+    config MACH_STM32F405
+        bool "STM32F405"
+        select MACH_STM32F4
+    config MACH_STM32F407
+        bool "STM32F407"
+        select MACH_STM32F4
+    config MACH_STM32F446
+        bool "STM32F446"
+        select MACH_STM32F4
+    config MACH_STM32F042
+        bool "STM32F042"
+        select MACH_STM32F0
+    config MACH_STM32F070
+        bool "STM32F070"
+        select MACH_STM32F0
+endchoice
+
+config MACH_STM32F0
+    bool
+config MACH_STM32F1
+    bool
+config MACH_STM32F2
+    bool
+config MACH_STM32F4
+    bool
+
+config MCU
+    string
+    default "stm32f042x6" if MACH_STM32F042
+    default "stm32f070xb" if MACH_STM32F070
+    default "stm32f103xe" if MACH_STM32F103
+    default "stm32f207xx" if MACH_STM32F207
+    default "stm32f405xx" if MACH_STM32F405
+    default "stm32f407xx" if MACH_STM32F407
+    default "stm32f446xx" if MACH_STM32F446
+
+config CLOCK_FREQ
+    int
+    default 48000000 if MACH_STM32F0
+    default 64000000 if MACH_STM32F103 && STM32_CLOCK_REF_INTERNAL
+    default 72000000 if MACH_STM32F103
+    default 120000000 if MACH_STM32F207
+    default 168000000 if MACH_STM32F405 || MACH_STM32F407
+    default 180000000 if MACH_STM32F446
+
+config FLASH_SIZE
+    hex
+    default 0x8000 if MACH_STM32F042
+    default 0x20000 if MACH_STM32F070
+    default 0x10000 if MACH_STM32F103 # Flash size of stm32f103x8 (64KiB)
+    default 0x40000 if MACH_STM32F2
+    default 0x80000 if MACH_STM32F4
+
+config RAM_START
+    hex
+    default 0x20000000
+
+config RAM_SIZE
+    hex
+    default 0x1800 if MACH_STM32F042
+    default 0x4000 if MACH_STM32F070
+    default 0x5000 if MACH_STM32F103 # Ram size of stm32f103x8 (20KiB)
+    default 0x20000 if MACH_STM32F207
+    default 0x20000 if MACH_STM32F4
+
+config STACK_SIZE
+    int
+    default 512
+
+config FLASH_START
+    hex
+    default 0x8000000
+
+config APPLICATION_START
+    hex
+    default 0x8002000 if MACH_STM32F103
+    default 0x8002000
+
+config ARMCM_RAM_VECTORTABLE
+    bool
+    default y if MACH_STM32F0 && FLASH_START != 0x8000000
+    default n
+
+choice
+    prompt "Clock Reference"
+    config STM32_CLOCK_REF_8M
+        bool "8 MHz crystal"
+    config STM32_CLOCK_REF_12M
+        bool "12 MHz crystal"
+    config STM32_CLOCK_REF_16M
+        bool "16 MHz crystal"
+    config STM32_CLOCK_REF_INTERNAL
+        bool "Internal clock"
+endchoice
+config CLOCK_REF_FREQ
+    int
+    default 16000000 if STM32_CLOCK_REF_16M
+    default 12000000 if STM32_CLOCK_REF_12M
+    default 1 if STM32_CLOCK_REF_INTERNAL
+    default 8000000
+
+choice
+    prompt "CAN pins"
+    config CAN_PINS_PA11_PA12
+        bool "Pins PA11(rx) and PA12(tx)"
+    config CAN_PINS_PB8_PB9
+        bool "Pins PB8(rx) and PB9(tx)"
+    config CAN_PINS_PI8_PH13
+        bool "Pins PI8(rx) and PH13(tx)" if MACH_STM32F4
+    config CAN_PINS_PB5_PB6
+        bool "Pins PB5(rx) and PB6(tx)" if MACH_STM32F4
+    config CAN_PINS_PB12_PB13
+        bool "Pins PB12(rx) and PB13(tx)" if MACH_STM32F4
+endchoice
+
+config STM32F0_TRIM
+    int "Internal clock trim override" if MACH_STM32F0 && STM32_CLOCK_REF_INTERNAL
+    default 16
+    help
+        Specify the internal clock trim value. Setting this can be
+        useful if the factory default internal clock is not accurate.
+        Default is 16 (use factory default). Each increment increases
+        the clock rate by ~240KHz.
+
+config STM32F042_PIN_SWAP
+    bool "Use PA9/PA10 for USB or CAN" if MACH_STM32F042
+    depends on MACH_STM32F042
+    default y if MACH_STM32F042
+    default n
+    help
+        Remaps logical pins PA11/PA12 to physical PA9/PA10 on low pincount F042 devices.
+
+choice
+depends on MACH_STM32F103
+prompt "Flash Page Size"
+config STM32F1_PAGE_SIZE_400
+    bool "Low Density (1024 KiB Page Size)"
+config STM32F1_PAGE_SIZE_800
+    bool "Medium Density (2048 KiB Page Size)"
+endchoice
+
+config FLASH_PAGE_SIZE
+    hex
+    default 0x400 if STM32F1_PAGE_SIZE_400
+    default 0x800 if STM32F1_PAGE_SIZE_800
+    default 0x400
+
+config MAGIC_KEY
+    hex
+    default 0x85D3 if MACH_STM32F103
+    default 0x85D3
+
+config BLOCK_SIZE
+    int
+    default 64
+
+endif

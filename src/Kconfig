@@ -1,0 +1,25 @@
+# Main Kconfig settings
+
+mainmenu "CanBoot Configuration"
+
+config MACH_STM32
+    bool
+    default y
+
+source "src/stm32/Kconfig"
+
+config CANSERIAL
+    bool
+    default y
+
+config CANBUS_BAUD
+    int "CAN bus speed"
+    default 500000
+
+config ENABLE_LED
+    bool "Enable Status LED"
+    default n
+
+config STATUS_LED_PIN
+    string "Status LED GPIO Pin"
+    depends on ENABLE_LED
