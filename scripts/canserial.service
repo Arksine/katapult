@@ -1,0 +1,11 @@
+[Unit]
+Description=Serial over CAN emulator
+After=multi-user.target
+
+[Service]
+Type=idle
+User=pi
+ExecStart=python3 /home/pi/CanBoot/scripts/pycanserial.py
+
+[Install]
+WantedBy=multi-user.target
