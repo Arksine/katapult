@@ -7,6 +7,7 @@
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // armcm_main
 #include "board/irq.h" // irq_disable
+#include "board/misc.h" // read magic key
 #include "internal.h" // enable_pclock
 #include "canboot_main.h" // sched_main
 
@@ -98,22 +99,6 @@ usb_request_bootloader(void)
     NVIC_SystemReset();
 }
 
-// Copy vector table and remap ram so new vector table is used
-static void
-enable_ram_vectortable(void)
-{
-    // Symbols created by armcm_link.lds.S linker script
-    extern uint32_t _ram_vectortable_start, _ram_vectortable_end;
-    extern uint32_t _text_vectortable_start;
-
-    uint32_t count = (&_ram_vectortable_end - &_ram_vectortable_start) * 4;
-    __builtin_memcpy(&_ram_vectortable_start, &_text_vectortable_start, count);
-    barrier();
-
-    enable_pclock(SYSCFG_BASE);
-    SYSCFG->CFGR1 |= 3 << SYSCFG_CFGR1_MEM_MODE_Pos;
-}
-
 // Configure and enable the PLL as clock source
 static void
 pll_setup(void)
@@ -144,36 +129,8 @@ pll_setup(void)
 
     // Setup CFGR3 register
     uint32_t cfgr3 = RCC_CFGR3_I2C1SW;
-    if (CONFIG_USBSERIAL)
-        // Select PLL as source for USB clock
-        cfgr3 |= RCC_CFGR3_USBSW;
+
     RCC->CFGR3 = cfgr3;
-}
-
-// Configure and enable internal 48Mhz clock on the stm32f042
-static void
-hsi48_setup(void)
-{
-#if CONFIG_MACH_STM32F042
-    // Enable HSI48
-    RCC->CR2 |= RCC_CR2_HSI48ON;
-    while (!(RCC->CR2 & RCC_CR2_HSI48RDY))
-        ;
-
-    // Switch system clock to HSI48
-    RCC->CFGR = RCC_CFGR_SW_HSI48;
-    while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != RCC_CFGR_SWS_HSI48)
-        ;
-
-    // Enable USB clock recovery
-    if (CONFIG_USBSERIAL) {
-        enable_pclock(CRS_BASE);
-        CRS->CR |= CRS_CR_AUTOTRIMEN | CRS_CR_CEN;
-    }
-
-    // Setup I2C1 clock
-    RCC->CFGR3 = RCC_CFGR3_I2C1SW;
-#endif
 }
 
 // Enable high speed internal 14Mhz clock for ADC
@@ -190,28 +147,13 @@ hsi14_setup(void)
 void
 armcm_main(void)
 {
-    if (CONFIG_USBSERIAL && CONFIG_MACH_STM32F042
-        && *(uint64_t*)USB_BOOT_FLAG_ADDR == USB_BOOT_FLAG) {
-        *(uint64_t*)USB_BOOT_FLAG_ADDR = 0;
-        uint32_t *sysbase = (uint32_t*)0x1fffc400;
-        asm volatile("mov sp, %0\n bx %1"
-                     : : "r"(sysbase[0]), "r"(sysbase[1]));
-    }
-
     SystemInit();
-
-    if (CONFIG_ARMCM_RAM_VECTORTABLE)
-        enable_ram_vectortable();
 
     // Set flash latency
     FLASH->ACR = (1 << FLASH_ACR_LATENCY_Pos) | FLASH_ACR_PRFTBE;
 
     // Configure main clock
-    if (CONFIG_MACH_STM32F042 && CONFIG_STM32_CLOCK_REF_INTERNAL
-        && CONFIG_USBSERIAL)
-        hsi48_setup();
-    else
-        pll_setup();
+    pll_setup();
 
     // Turn on hsi14 oscillator for ADC
     hsi14_setup();
@@ -224,5 +166,53 @@ armcm_main(void)
     }
 #endif
 
-    sched_main();
+    timer_init();
+    canboot_main();
+}
+
+uint16_t
+read_magic_key(void)
+{
+    irq_disable();
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    RCC->APB1ENR;
+    uint16_t val = RTC->BKP4R;
+    if (val) {
+    // clear the key
+        PWR->CR |= PWR_CR_DBP;
+        RTC->BKP4R = 0;
+        PWR->CR &=~ PWR_CR_DBP;
+    }
+    RCC->APB1ENR &= ~RCC_APB1ENR_PWREN;
+    irq_enable();
+    return val;
+}
+
+void
+set_magic_key(void)
+{
+    irq_disable();
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    RCC->APB1ENR;
+    PWR->CR |= PWR_CR_DBP;
+    RTC->BKP4R = CONFIG_MAGIC_KEY;
+    PWR->CR &=~ PWR_CR_DBP;
+    RCC->APB1ENR &= ~RCC_APB1ENR_PWREN;
+    irq_enable();
+}
+
+typedef void (*func_ptr)(void);
+
+void
+jump_to_application(void)
+{
+    func_ptr application = (func_ptr) *(volatile uint32_t*)
+        (CONFIG_APPLICATION_START + 0x04);
+
+    // Set the main stack pointer
+    asm volatile ("MSR msp, %0" : : "r" (*(volatile uint32_t*)
+        CONFIG_APPLICATION_START) : );
+
+    // Jump to application
+    application();
 }
