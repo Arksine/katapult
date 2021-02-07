@@ -214,6 +214,19 @@ canboot_process_rx(uint32_t id, uint32_t len, uint8_t *data)
     }
 }
 
+static inline uint8_t
+check_application_code(void)
+{
+    // Read the first block of memory, if it
+    // is all 0xFF then no application has been flashed
+    flash_read_block(0, (uint32_t*)page_buffer);
+    for (uint8_t i = 0; i < CONFIG_BLOCK_SIZE; i++) {
+        if (page_buffer[i] != 0xFF)
+            return 1;
+    }
+    return 0;
+}
+
 
 /****************************************************************
  * Startup
@@ -252,9 +265,9 @@ void
 canboot_main(void)
 {
     uint16_t mkey = read_magic_key();
-    // Attempt to enter the bootloader.  This function should not
-    // return
-    if (mkey == CONFIG_MAGIC_KEY)
+    // Enter the bootloader if the magic key has been set or if
+    // no application has been flashed
+    if (mkey == CONFIG_MAGIC_KEY || !check_application_code())
         enter_bootloader();
 
     // set magic key and delay for one second.  This enters the bootloader if
