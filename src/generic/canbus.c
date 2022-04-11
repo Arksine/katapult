@@ -87,67 +87,88 @@ canboot_sendf(uint8_t* data, uint16_t size)
 
 
 /****************************************************************
- * CAN command handling
+ * CAN "admin" command handling
  ****************************************************************/
 
-// Helper to retry sending until successful
-static void
-canbus_send_blocking(uint32_t id, uint32_t len, uint8_t *data)
+// Available commands and responses
+#define CANBUS_CMD_QUERY_UNASSIGNED 0x00
+#define CANBUS_CMD_SET_NODEID 0x01
+#define CANBUS_RESP_NEED_NODEID 0x20
+
+// Helper to verify a UUID in a command matches this chip's UUID
+static int
+can_check_uuid(uint32_t id, uint32_t len, uint8_t *data)
 {
+    return len >= 7 && memcmp(&data[1], canbus_uuid, sizeof(canbus_uuid)) == 0;
+}
+
+// Helpers to encode/decode a CAN identifier to a 1-byte "nodeid"
+static int
+can_get_nodeid(void)
+{
+    if (!canbus_assigned_id)
+        return 0;
+    return (canbus_assigned_id - 0x100) >> 1;
+}
+static uint32_t
+can_decode_nodeid(int nodeid)
+{
+    return (nodeid << 1) + 0x100;
+}
+
+static void
+can_process_query_unassigned(uint32_t id, uint32_t len, uint8_t *data)
+{
+    if (canbus_assigned_id)
+        return;
+    uint8_t send[8];
+    send[0] = CANBUS_RESP_NEED_NODEID;
+    memcpy(&send[1], canbus_uuid, sizeof(canbus_uuid));
+    // Send with retry
     for (;;) {
-        int ret = canbus_send(id, len, data);
+        int ret = canbus_send(CANBUS_ID_ADMIN_RESP, 7, send);
         if (ret >= 0)
             return;
     }
 }
 
 static void
-can_process_ping(uint32_t id, uint32_t len, uint8_t *data)
+can_id_conflict(void)
 {
-    canbus_send_blocking(canbus_assigned_id + 1, 0, NULL);
+    canbus_assigned_id = 0;
+    canbus_set_filter(canbus_assigned_id);
+    // TODO: We should likely do something here, such as report back
 }
 
 static void
-can_process_reset(uint32_t id, uint32_t len, uint8_t *data)
+can_process_set_nodeid(uint32_t id, uint32_t len, uint8_t *data)
 {
-    /*uint32_t reset_id = data[0] | (data[1] << 8);
-    if (reset_id == canbus_assigned_id)
-        canbus_reboot();*/
-}
-
-static void
-can_process_uuid(uint32_t id, uint32_t len, uint8_t *data)
-{
-    if (canbus_assigned_id)
+    if (len < 8)
         return;
-    canbus_send_blocking(CANBUS_ID_UUID_RESP, sizeof(canbus_uuid), canbus_uuid);
-}
-
-static void
-can_process_set_id(uint32_t id, uint32_t len, uint8_t *data)
-{
-    // compare my UUID with packet to check if this packet mine
-    if (memcmp(&data[2], canbus_uuid, sizeof(canbus_uuid)) == 0) {
-        canbus_assigned_id = data[0] | (data[1] << 8);
-        canbus_set_dataport(canbus_assigned_id);
+    uint32_t newid = can_decode_nodeid(data[7]);
+    if (can_check_uuid(id, len, data)) {
+        if (newid != canbus_assigned_id) {
+            canbus_assigned_id = newid;
+            canbus_set_filter(canbus_assigned_id);
+        }
+    } else if (newid == canbus_assigned_id) {
+        can_id_conflict();
     }
 }
 
+// Handle an "admin" command
 static void
 can_process(uint32_t id, uint32_t len, uint8_t *data)
 {
-    if (id == canbus_assigned_id) {
-        if (len)
-            canboot_process_rx(id, len, data);
-        else
-            can_process_ping(id, len, data);
-    } else if (id == CANBUS_ID_UUID) {
-        if (len)
-            can_process_reset(id, len, data);
-        else
-            can_process_uuid(id, len, data);
-    } else if (id==CANBUS_ID_SET) {
-        can_process_set_id(id, len, data);
+    if (!len)
+        return;
+    switch (data[0]) {
+    case CANBUS_CMD_QUERY_UNASSIGNED:
+        can_process_query_unassigned(id, len, data);
+        break;
+    case CANBUS_CMD_SET_NODEID:
+        can_process_set_nodeid(id, len, data);
+        break;
     }
 }
 
@@ -158,12 +179,23 @@ can_process(uint32_t id, uint32_t len, uint8_t *data)
 
 static volatile uint8_t canbus_rx_wake;
 
+// Handle incoming data (called from IRQ handler)
+void
+canbus_process_data(uint32_t id, uint32_t len, uint8_t *data)
+{
+    if (!id || id != canbus_assigned_id)
+        return;
+    canboot_process_rx(id, len, data);
+    canbus_notify_rx();
+}
+
 void
 canbus_notify_rx(void)
 {
     canbus_rx_wake = 1;
 }
 
+// Task to process incoming commands and admin messages
 void
 canbus_rx_task(void)
 {
@@ -178,7 +210,10 @@ canbus_rx_task(void)
         int ret = canbus_read(&id, data);
         if (ret < 0)
             break;
-        can_process(id, ret, data);
+        if (id && id == canbus_assigned_id + 1)
+            can_id_conflict();
+        else if (id == CANBUS_ID_ADMIN)
+            can_process(id, ret, data);
     }
 }
 
@@ -190,7 +225,12 @@ void
 canbus_set_uuid(void *uuid)
 {
     memcpy(canbus_uuid, uuid, sizeof(canbus_uuid));
+    canbus_notify_rx();
+}
 
-    // Send initial message
-    can_process_uuid(0, 0, NULL);
+void
+canbus_shutdown(void)
+{
+    canbus_notify_tx();
+    canbus_notify_rx();
 }
