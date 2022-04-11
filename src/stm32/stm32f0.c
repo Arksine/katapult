@@ -1,6 +1,6 @@
-// Code to setup clocks and gpio on stm32f0
+// Code to setup clocks on stm32f0
 //
-// Copyright (C) 2019  Kevin O'Connor <kevin@koconnor.net>
+// Copyright (C) 2019-2021  Kevin O'Connor <kevin@koconnor.net>
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
@@ -13,38 +13,19 @@
 
 #define FREQ_PERIPH 48000000
 
-// Enable a peripheral clock
-void
-enable_pclock(uint32_t periph_base)
+// Map a peripheral address to its enable bits
+struct cline
+lookup_clock_line(uint32_t periph_base)
 {
-    if (periph_base < SYSCFG_BASE) {
-        uint32_t pos = (periph_base - APBPERIPH_BASE) / 0x400;
-        RCC->APB1ENR |= 1 << pos;
-        RCC->APB1ENR;
-    } else if (periph_base < AHBPERIPH_BASE) {
-        uint32_t pos = (periph_base - SYSCFG_BASE) / 0x400;
-        RCC->APB2ENR |= 1 << pos;
-        RCC->APB2ENR;
+    if (periph_base >= AHB2PERIPH_BASE) {
+        uint32_t bit = 1 << ((periph_base - AHB2PERIPH_BASE) / 0x400 + 17);
+        return (struct cline){.en=&RCC->AHBENR, .rst=&RCC->AHBRSTR, .bit=bit};
+    } else if (periph_base >= SYSCFG_BASE) {
+        uint32_t bit = 1 << ((periph_base - SYSCFG_BASE) / 0x400);
+        return (struct cline){.en=&RCC->APB2ENR, .rst=&RCC->APB2RSTR, .bit=bit};
     } else {
-        uint32_t pos = (periph_base - AHB2PERIPH_BASE) / 0x400;
-        RCC->AHBENR |= 1 << (pos + 17);
-        RCC->AHBENR;
-    }
-}
-
-// Check if a peripheral clock has been enabled
-int
-is_enabled_pclock(uint32_t periph_base)
-{
-    if (periph_base < SYSCFG_BASE) {
-        uint32_t pos = (periph_base - APBPERIPH_BASE) / 0x400;
-        return RCC->APB1ENR & (1 << pos);
-    } else if (periph_base < AHBPERIPH_BASE) {
-        uint32_t pos = (periph_base - SYSCFG_BASE) / 0x400;
-        return RCC->APB2ENR & (1 << pos);
-    } else {
-        uint32_t pos = (periph_base - AHB2PERIPH_BASE) / 0x400;
-        return RCC->AHBENR & (1 << (pos + 17));
+        uint32_t bit = 1 << ((periph_base - APBPERIPH_BASE) / 0x400);
+        return (struct cline){.en=&RCC->APB1ENR, .rst=&RCC->APB1RSTR, .bit=bit};
     }
 }
 
@@ -62,41 +43,6 @@ gpio_clock_enable(GPIO_TypeDef *regs)
     uint32_t rcc_pos = ((uint32_t)regs - AHB2PERIPH_BASE) / 0x400;
     RCC->AHBENR |= 1 << (rcc_pos + 17);
     RCC->AHBENR;
-}
-
-// Set the mode and extended function of a pin
-void
-gpio_peripheral(uint32_t gpio, uint32_t mode, int pullup)
-{
-    GPIO_TypeDef *regs = digital_regs[GPIO2PORT(gpio)];
-
-    // Enable GPIO clock
-    gpio_clock_enable(regs);
-
-    // Configure GPIO
-    uint32_t mode_bits = mode & 0xf, func = (mode >> 4) & 0xf, od = mode >> 8;
-    uint32_t pup = pullup ? (pullup > 0 ? 1 : 2) : 0;
-    uint32_t pos = gpio % 16, af_reg = pos / 8;
-    uint32_t af_shift = (pos % 8) * 4, af_msk = 0x0f << af_shift;
-    uint32_t m_shift = pos * 2, m_msk = 0x03 << m_shift;
-
-    regs->AFR[af_reg] = (regs->AFR[af_reg] & ~af_msk) | (func << af_shift);
-    regs->MODER = (regs->MODER & ~m_msk) | (mode_bits << m_shift);
-    regs->PUPDR = (regs->PUPDR & ~m_msk) | (pup << m_shift);
-    regs->OTYPER = (regs->OTYPER & ~(1 << pos)) | (od << pos);
-    regs->OSPEEDR = (regs->OSPEEDR & ~m_msk) | (0x02 << m_shift);
-}
-
-#define USB_BOOT_FLAG_ADDR (CONFIG_RAM_START + CONFIG_RAM_SIZE - 1024)
-#define USB_BOOT_FLAG 0x55534220424f4f54 // "USB BOOT"
-
-// Handle USB reboot requests
-void
-usb_request_bootloader(void)
-{
-    irq_disable();
-    *(uint64_t*)USB_BOOT_FLAG_ADDR = USB_BOOT_FLAG;
-    NVIC_SystemReset();
 }
 
 // Configure and enable the PLL as clock source
@@ -160,7 +106,7 @@ armcm_main(void)
 
     // Support pin remapping USB/CAN pins on low pinout stm32f042
 #ifdef SYSCFG_CFGR1_PA11_PA12_RMP
-    if (CONFIG_STM32F042_PIN_SWAP) {
+    if (CONFIG_STM32_CANBUS_PA11_PA12_REMAP) {
         enable_pclock(SYSCFG_BASE);
         SYSCFG->CFGR1 |= SYSCFG_CFGR1_PA11_PA12_RMP;
     }
