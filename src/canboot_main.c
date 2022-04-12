@@ -14,14 +14,14 @@
 
 #define COMMAND_SIZE    8
 #define CMD_BUF_SIZE    16
-#define CMD_CONNECT     0x01
-#define CMD_RX_BLOCK    0x02
-#define CMD_RX_EOF      0x03
-#define CMD_REQ_BLOCK   0x04
-#define CMD_COMPLETE    0x05
-#define ACK_COMMAND     0x10
-#define ACK_BLOCK_RX    0x11
-#define NACK            0x20
+#define CMD_CONNECT     0x11
+#define CMD_RX_BLOCK    0x12
+#define CMD_RX_EOF      0x13
+#define CMD_REQ_BLOCK   0x14
+#define CMD_COMPLETE    0x15
+#define ACK_COMMAND     0xa0
+#define ACK_BLOCK_RX    0xa1
+#define NACK            0xf0
 
 // Command Format:
 // <4 byte header> <1 byte cmd> <2 byte arg> <1 byte trailer>
