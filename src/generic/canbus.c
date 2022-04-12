@@ -102,18 +102,10 @@ can_check_uuid(uint32_t id, uint32_t len, uint8_t *data)
     return len >= 7 && memcmp(&data[1], canbus_uuid, sizeof(canbus_uuid)) == 0;
 }
 
-// Helpers to encode/decode a CAN identifier to a 1-byte "nodeid"
-static int
-can_get_nodeid(void)
-{
-    if (!canbus_assigned_id)
-        return 0;
-    return (canbus_assigned_id - 0x100) >> 1;
-}
 static uint32_t
 can_decode_nodeid(int nodeid)
 {
-    return (nodeid << 1) + 0x100;
+    return (nodeid << 1) + 0x200;
 }
 
 static void
