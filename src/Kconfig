@@ -12,7 +12,7 @@ config CANSERIAL
     bool
     default y
 
-config CONFIG_CANBUS_FREQUENCY
+config CANBUS_FREQUENCY
     int "CAN bus speed"
     default 500000
 
