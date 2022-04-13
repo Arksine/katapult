@@ -48,9 +48,40 @@ Once configured and built flash with a programmer such as an ST-Link.
 3) Run the flash script:
    ```
    cd ~/CanBoot
-   python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin <uuid>
+   python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
    ```
-   Replace <uuid> with the appropriate uuid for your can device.
+   Replace <uuid> with the appropriate uuid for your can device.  If
+   the device has not been previouisly flashed with Klipper, it is possible
+   to query the bootloader for the UUID:
+
+   ```
+   flash_can.py -i can0 -q
+   ```
+
+## FlashCan usage
+
+Running `flash_can.py -h` to display help:
+
+```
+usage: flash_can.py [-h] [-i <can interface>] [-f <klipper.bin>] [-u <uuid>]
+                    [-q]
+
+Can Bootloader Flash Utility
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i <can interface>, --interface <can interface>
+                        Can Interface
+  -f <klipper.bin>, --firmware <klipper.bin>
+                        Path to Klipper firmware file
+  -u <uuid>, --uuid <uuid>
+                        Can device uuid
+  -q, --query           Query Bootloader Device IDs
+```
+
+The `interface` option defaults to `can0` if omitted.  The `firmware` option
+defaults to `~/klipper/out/klipper.bin`.  The `uuid` must be specified unless
+the user is running a query with `-q`.
 
 ## Notes
 - If using a MCP2515 Can Device it is likely that packets will be dropped when
