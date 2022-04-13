@@ -25,7 +25,7 @@ def output(msg: str) -> None:
     sys.stdout.write(msg)
     sys.stdout.flush()
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 CAN_FMT = "<IB3x8s"
 CAN_READER_LIMIT = 1024 * 1024
 
@@ -374,6 +374,19 @@ class CanSocket:
         await flasher.verify_file()
         await flasher.finish()
 
+    async def run_query(self, intf: str):
+        try:
+            self.cansock.bind((intf,))
+        except Exception:
+            raise FlashCanError("Unable to bind socket to can0")
+        self.closed = False
+        self.cansock.setblocking(False)
+        self._loop.add_reader(
+            self.cansock.fileno(), self._handle_can_response)
+        self._reset_nodes()
+        await asyncio.sleep(.5)
+        await self._query_uuids()
+
     def close(self):
         if self.closed:
             return
@@ -394,24 +407,40 @@ def main():
         "-f", "--firmware", metavar="<klipper.bin>",
         default="~/klipper/out/klipper.bin",
         help="Path to Klipper firmware file")
-    parser.add_argument('uuid', metavar="<uuid>",
-                        help="Can device uuid")
+    parser.add_argument(
+        "-u", "--uuid", metavar="<uuid>", default=None,
+        help="Can device uuid"
+    )
+    parser.add_argument(
+        "-q", "--query", action="store_true",
+        help="Query Bootloader Device IDs"
+    )
 
     args = parser.parse_args()
     intf = args.interface
-    uuid = int(args.uuid, 16)
     fpath = pathlib.Path(args.firmware).expanduser().resolve()
     loop = asyncio.get_event_loop()
     try:
         cansock = CanSocket(loop)
-        loop.run_until_complete(cansock.run(intf, uuid, fpath))
+        if args.query:
+            loop.run_until_complete(cansock.run_query(intf))
+        else:
+            if args.uuid is None:
+                raise FlashCanError(
+                    "The 'uuid' option must be specified to flash a device"
+                )
+            uuid = int(args.uuid, 16)
+            loop.run_until_complete(cansock.run(intf, uuid, fpath))
     except Exception as e:
         logging.exception("Can Flash Error")
         sys.exit(-1)
     finally:
         if cansock is not None:
             cansock.close()
-    output_line("CAN Flash Success")
+    if args.query:
+        output_line("Query Complete")
+    else:
+        output_line("CAN Flash Success")
 
 
 if __name__ == '__main__':
