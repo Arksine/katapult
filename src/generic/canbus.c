@@ -93,6 +93,7 @@ canboot_sendf(uint8_t* data, uint16_t size)
 // Available commands and responses
 #define CANBUS_CMD_QUERY_UNASSIGNED 0x00
 #define CANBUS_CMD_SET_NODEID 0x01
+#define CANBUS_CMD_CLEAR_NODE_ID 0x02
 #define CANBUS_RESP_NEED_NODEID 0x20
 
 // Helper to verify a UUID in a command matches this chip's UUID
@@ -122,6 +123,13 @@ can_process_query_unassigned(uint32_t id, uint32_t len, uint8_t *data)
         if (ret >= 0)
             return;
     }
+}
+
+static void
+can_process_clear_node_id(void)
+{
+    canbus_assigned_id = 0;
+    canbus_set_filter(canbus_assigned_id);
 }
 
 static void
@@ -160,6 +168,9 @@ can_process(uint32_t id, uint32_t len, uint8_t *data)
         break;
     case CANBUS_CMD_SET_NODEID:
         can_process_set_nodeid(id, len, data);
+        break;
+    case CANBUS_CMD_CLEAR_NODE_ID:
+        can_process_clear_node_id();
         break;
     }
 }
