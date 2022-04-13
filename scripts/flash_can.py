@@ -346,11 +346,11 @@ class CanSocket:
         self.nodes[decoded_id + 1] = node
         return node
 
-    async def run(self, uuid: int, fw_path: pathlib.Path):
+    async def run(self, intf: str, uuid: int, fw_path: pathlib.Path) -> None:
         if not fw_path.is_file():
             raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
         try:
-            self.cansock.bind(("can0",))
+            self.cansock.bind((intf,))
         except Exception:
             raise FlashCanError("Unable to bind socket to can0")
         self.closed = False
@@ -386,17 +386,25 @@ class CanSocket:
 def main():
     parser = argparse.ArgumentParser(
         description="Can Bootloader Flash Utility")
+    parser.add_argument(
+        "-i", "--interface", default="can0", metavar='<can interface>',
+        help="Can Interface"
+    )
+    parser.add_argument(
+        "-f", "--firmware", metavar="<klipper.bin>",
+        default="~/klipper/out/klipper.bin",
+        help="Path to Klipper firmware file")
     parser.add_argument('uuid', metavar="<uuid>",
                         help="Can device uuid")
-    parser.add_argument('fwpath', metavar="<klipper.bin>",
-                        help="Path to firmware file")
+
     args = parser.parse_args()
+    intf = args.interface
     uuid = int(args.uuid, 16)
-    fpath = pathlib.Path(args.fwpath).expanduser().resolve()
+    fpath = pathlib.Path(args.firmware).expanduser().resolve()
     loop = asyncio.get_event_loop()
     try:
         cansock = CanSocket(loop)
-        loop.run_until_complete(cansock.run(uuid, fpath))
+        loop.run_until_complete(cansock.run(intf, uuid, fpath))
     except Exception as e:
         logging.exception("Can Flash Error")
         sys.exit(-1)
