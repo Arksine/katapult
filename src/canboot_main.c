@@ -204,7 +204,7 @@ canboot_process_rx(uint32_t id, uint32_t len, uint8_t *data)
             // read into into the page buffer
             if (page_pos >= CONFIG_FLASH_PAGE_SIZE)
                 return;
-            else if (page_pos > CONFIG_FLASH_PAGE_SIZE)
+            else if (page_pos + len > CONFIG_FLASH_PAGE_SIZE)
                 len = CONFIG_FLASH_PAGE_SIZE - cmd_pos;
             memcpy(&page_buffer[page_pos], data, len);
             page_pos += len;
