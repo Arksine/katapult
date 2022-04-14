@@ -27,7 +27,7 @@ The menuconfig will present the following options:
   present for "STM32F103" models,
 - `Clock Reference`: Choose the appropriate setting for your board's crystal
 - `CAN pins`: Allows the user to choose which pins are wired to CAN.
-- `Flash Page Size`: The STM32F103 comes in multiple variants.  The low
+- `Flash Page Size`: The STM32F103 comes in multiple variants.  The low/medium
   density models have a 1 KiB page size, others a 2KiB page size.  Choose
   the appropriate selection for your model. This option only present for
   "STM32F103" models,
