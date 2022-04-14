@@ -171,9 +171,9 @@ choice
 depends on MACH_STM32F103
 prompt "Flash Page Size"
 config STM32F1_PAGE_SIZE_400
-    bool "Low Density (1024 KiB Page Size)"
+    bool "Low/Medium Density (1024 KiB Page Size)"
 config STM32F1_PAGE_SIZE_800
-    bool "Medium Density (2048 KiB Page Size)"
+    bool "High Density (2048 KiB Page Size)"
 endchoice
 
 config FLASH_PAGE_SIZE
