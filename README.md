@@ -37,7 +37,11 @@ The menuconfig will present the following options:
   if the LED is on when the pin is low.  For example, the status LED Pin for a
   "blue pill" is !PC13.
 
-Once configured and built flash with a programmer such as an ST-Link.
+Once configured and built flash with a programmer such as an ST-Link.  If you
+don't have a programmer available, it should be possible to flash STM32F103
+devices via UART and STM32F042/72 devices over DFU.  ST's STM32CubeProgrammer
+software can facilitate all of these methods, however there are also other
+tools such as `stm32flash` (UART) and `dfu-util` (USB DFU).
 
 ## Uploading a Program
 1) Build Klipper with CAN support and with the "8KiB" bootloader setting enabled.
