@@ -20,7 +20,8 @@ make
 ```
 
 The menuconfig will present the following options:
-- `Processor model`: Currently only STM32F103 is supported
+- `Processor model`: Currently STM32F042, STMF072, and STM32F103 models are
+ supported.
 - `Disable SWD at startup`:  This is an option for GigaDevice STM32F103
   clones.  Note that these untested on this bootloader. This option only
   present for "STM32F103" models,
