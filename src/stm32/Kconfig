@@ -179,7 +179,7 @@ endchoice
 config FLASH_PAGE_SIZE
     hex
     default 0x400 if MACH_STM32F042
-    default 0x800 if MACH_STM32F070
+    default 0x800 if MACH_STM32F072
     default 0x400 if MACH_STM32F103 && STM32F1_PAGE_SIZE_400
     default 0x800 if MACH_STM32F103 && STM32F1_PAGE_SIZE_800
     default 0x400
