@@ -89,9 +89,14 @@ defaults to `~/klipper/out/klipper.bin`.  The `uuid` must be specified unless
 the user is running a query with `-q`.
 
 ## Notes
-- If using a MCP2515 Can Device it is likely that packets will be dropped when
-  reading flash back from the node during the verification process.  Reducing
-  SPI speed may help with this, in my testing the process could not complete
-  at 10MHz.  If possible use a USB can device flashed with
-  [candlelight](https://github.com/candle-usb/candleLight_fw).
+- It is recommended to USB CAN device flashed with
+  [candlelight](https://github.com/candle-usb/candleLight_fw), such as a
+  [Canable](https://canable.io/).
+- If using a MCP2515 CAN Device (ie: Waveshare RS485 CAN HAT) it is possible
+  that packets will be dropped when reading flash back from the node during
+  the verification process.  That said, I have successfully tested the 12 MHz
+  Crystal variant with the
+  [recommended settings](https://www.waveshare.com/wiki/RS485_CAN_HAT).
+- If you have a STM32F103 device and the verification fails it is likely that
+  you selected the wrong `Flash Page Size`.
 
