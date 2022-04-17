@@ -43,6 +43,10 @@ devices via UART and STM32F042/72 devices over DFU.  ST's STM32CubeProgrammer
 software can facilitate all of these methods, however there are also other
 tools such as `stm32flash` (UART) and `dfu-util` (USB DFU).
 
+NOTE:  Prior to flashing CanBoot it is recommended to do a full chip erase.
+Doing so allows CanBoot to detect that no application is present and enter
+the bootloader.  This is required if your board does no have a reset button.
+
 ## Uploading a Program
 1) Build Klipper with CAN support and with the "8KiB" bootloader setting enabled.
 2) Enter the bootloader.  This may be accomplished through "double tapping" the
