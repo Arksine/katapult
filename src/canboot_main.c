@@ -31,6 +31,8 @@
 #define WAIT_BLINK_TIME 1000000
 #define XFER_BLINK_TIME 10000
 
+#define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
+
 static uint8_t page_buffer[CONFIG_FLASH_PAGE_SIZE];
 static uint8_t cmd_buf[CMD_BUF_SIZE];
 static uint8_t cmd_pos = 0;
@@ -264,18 +266,23 @@ enter_bootloader(void)
 void
 canboot_main(void)
 {
-    uint16_t mkey = read_magic_key();
-    // Enter the bootloader if the magic key has been set or if
-    // no application has been flashed
-    if (mkey == CONFIG_MAGIC_KEY || !check_application_code())
-        enter_bootloader();
+    uint32_t req_addr = *(uint32_t *)CONFIG_FLASH_START;
+    volatile uint64_t* boot_request_sig = (volatile uint64_t *)req_addr;
 
-    // set magic key and delay for one second.  This enters the bootloader if
+    // Enter the bootloader in the following conditions:
+    // - The request signature is set in memory (request from app)
+    // - No application code is present
+    if ((*boot_request_sig == REQUEST_SIG ) || !check_application_code()) {
+        *boot_request_sig = 0;
+        enter_bootloader();
+    }
+
+    // set request signature and delay for two seconds.  This enters the bootloader if
     // the reset button is double clicked
-    set_magic_key();
-    udelay(1500000);
+    *boot_request_sig = REQUEST_SIG;
+    udelay(2000000);
+    *boot_request_sig = 0;
     // No reset, read the key back out to clear it
-    read_magic_key();
 
     // jump to app
     jump_to_application();

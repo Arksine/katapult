@@ -57,11 +57,16 @@ SECTIONS
         _bss_end = .;
     } > ram
 
-    _stack_start = CONFIG_RAM_START + CONFIG_RAM_SIZE - CONFIG_STACK_SIZE ;
+    _stack_start = CONFIG_RAM_START + CONFIG_RAM_SIZE - CONFIG_STACK_SIZE - 8;
     .stack _stack_start (NOLOAD) :
     {
         . = . + CONFIG_STACK_SIZE;
         _stack_end = .;
+    } > ram
+
+    .reserved (NOLOAD) :
+    {
+        . = . + 8;
     } > ram
 
     /DISCARD/ : {
