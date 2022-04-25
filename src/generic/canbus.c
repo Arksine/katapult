@@ -92,8 +92,8 @@ canboot_sendf(uint8_t* data, uint16_t size)
 
 // Available commands and responses
 #define CANBUS_CMD_QUERY_UNASSIGNED 0x00
-#define CANBUS_CMD_SET_NODEID 0x01
-#define CANBUS_CMD_CLEAR_NODE_ID 0x02
+#define CANBUS_CMD_SET_NODEID_CANBOOT 0x11
+#define CANBUS_CMD_CLEAR_NODE_ID_CANBOOT 0x12
 #define CANBUS_RESP_NEED_NODEID 0x20
 
 // Helper to verify a UUID in a command matches this chip's UUID
@@ -117,9 +117,10 @@ can_process_query_unassigned(uint32_t id, uint32_t len, uint8_t *data)
     uint8_t send[8];
     send[0] = CANBUS_RESP_NEED_NODEID;
     memcpy(&send[1], canbus_uuid, sizeof(canbus_uuid));
+    send[7] = 1;
     // Send with retry
     for (;;) {
-        int ret = canbus_send(CANBUS_ID_ADMIN_RESP, 7, send);
+        int ret = canbus_send(CANBUS_ID_ADMIN_RESP, 8, send);
         if (ret >= 0)
             return;
     }
@@ -166,10 +167,10 @@ can_process(uint32_t id, uint32_t len, uint8_t *data)
     case CANBUS_CMD_QUERY_UNASSIGNED:
         can_process_query_unassigned(id, len, data);
         break;
-    case CANBUS_CMD_SET_NODEID:
+    case CANBUS_CMD_SET_NODEID_CANBOOT:
         can_process_set_nodeid(id, len, data);
         break;
-    case CANBUS_CMD_CLEAR_NODE_ID:
+    case CANBUS_CMD_CLEAR_NODE_ID_CANBOOT:
         can_process_clear_node_id();
         break;
     }
