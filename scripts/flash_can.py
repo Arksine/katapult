@@ -158,11 +158,16 @@ class CanFlasher:
                 if resp == i:
                     # command should ack with the requested block as
                     # parameter
-                    buf = await self.node.readexactly(
-                        self.block_size, timeout=10.
-                    )
-                    if len(buf) == self.block_size:
-                        break
+                    try:
+                        buf = await self.node.readexactly(
+                            self.block_size, timeout=5.
+                        )
+                    except asyncio.TimeoutError:
+                        if tries:
+                            output_line("\nRead Timeout, Retrying...")
+                    else:
+                        if len(buf) == self.block_size:
+                            break
                 tries -= 1
                 await asyncio.sleep(.1)
             else:
