@@ -49,11 +49,11 @@ KLIPPER_ADMIN_ID = 0x3f0
 KLIPPER_REBOOT_CMD = 0x02
 
 # CAN Admin Defs
-CANBUS_ID_ADMIN = 0x3da
-CANBUS_ID_ADMIN_RESP = 0x3db
+CANBUS_ID_ADMIN = 0x3f0
+CANBUS_ID_ADMIN_RESP = 0x3f1
 CANBUS_CMD_QUERY_UNASSIGNED = 0x00
-CANBUS_CMD_SET_NODEID = 0x01
-CANBUS_CMD_CLEAR_NODE_ID = 0x02
+CANBUS_CMD_SET_NODEID = 0x11
+CANBUS_CMD_CLEAR_NODE_ID = 0x12
 CANBUS_RESP_NEED_NODEID = 0x20
 CANBUS_NODE_OFFSET = 0x200
 
@@ -158,7 +158,9 @@ class CanFlasher:
                 if resp == i:
                     # command should ack with the requested block as
                     # parameter
-                    buf = await self.node.readexactly(self.block_size, timeout=10.)
+                    buf = await self.node.readexactly(
+                        self.block_size, timeout=10.
+                    )
                     if len(buf) == self.block_size:
                         break
                 tries -= 1
@@ -315,16 +317,21 @@ class CanSocket:
         while curtime < endtime:
             diff = endtime - curtime
             try:
-                resp = await self.admin_node.readexactly(7, diff)
+                resp = await self.admin_node.readexactly(8, diff)
             except asyncio.TimeoutError:
                 break
             finally:
                 curtime = self._loop.time()
             if resp[0] != CANBUS_RESP_NEED_NODEID:
                 continue
-            output_line(f"Detected UUID: {resp[1:].hex()}")
+            app = "unknown"
+            if resp[-1] == 1:
+                app = "CanBoot"
+            elif resp[-1] == 0:
+                app = "Klipper"
+            output_line(f"Detected UUID: {resp[1:].hex()}, Application: {app}")
             uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(resp[1:7])])
-            if uuid not in self.uuids:
+            if uuid not in self.uuids and app == "CanBoot":
                 self.uuids.append(uuid)
         return self.uuids
 
@@ -364,7 +371,7 @@ class CanSocket:
         id_list = await self._query_uuids()
         if uuid not in id_list:
             raise FlashCanError(
-                f"Unable to find node matching UUID: {uuid}"
+                f"Unable to find node matching UUID: {uuid:06x}"
             )
         node = self._set_node_id(uuid)
         flasher = CanFlasher(node, fw_path)
