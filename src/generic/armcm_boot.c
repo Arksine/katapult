@@ -18,7 +18,7 @@ extern uint32_t _stack_end;
  * Basic interrupt handlers
  ****************************************************************/
 
-static void __noreturn
+void __noreturn __visible
 reset_handler_stage_two(void)
 {
     int i;
@@ -74,17 +74,23 @@ reset_handler_stage_two(void)
         ;
 }
 
-// Initial code entry point - invoked by the processor after a reset
-// Reset interrupts and stack to take control from bootloaders
-void
-ResetHandler(void)
-{
-    __disable_irq();
+#define CANBOOT_SIGNATURE 0x21746f6f426e6143 // CanBoot!
 
-    // Explicitly load the stack pointer, jump to stage two
-    asm volatile("mov sp, %0\n bx %1"
-                 : : "r"(&_stack_end), "r"(reset_handler_stage_two));
-}
+// Initial code entry point - invoked by the processor after a reset
+// Reset interrupts and stack to take control from bootloaders.  Implemented
+// Kevin's recommendation.
+asm(".section .text.ResetHandler\n"
+    ".8byte " __stringify(CANBOOT_SIGNATURE) "\n"
+    ".global ResetHandler\n"
+    ".type ResetHandler, %function\n"
+    "ResetHandler:\n"
+    "    cpsid i\n"
+    "    ldr r3, =_stack_end\n"
+    "    mov sp, r3\n"
+    "    b reset_handler_stage_two\n"
+    "    .pool\n"
+    );
+extern void ResetHandler();
 DECL_ARMCM_IRQ(ResetHandler, -15);
 
 // Code called for any undefined interrupts
