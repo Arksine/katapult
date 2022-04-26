@@ -5,8 +5,6 @@
 #include <stdint.h> // uint8_t
 #include "autoconf.h" // CONFIG_MACH_STM32F0
 
-uint16_t read_magic_key(void);
-void set_magic_key(void);
 void jump_to_application(void);
 
 // Timer Functions

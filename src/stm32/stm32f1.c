@@ -8,7 +8,7 @@
 #include "board/armcm_boot.h" // VectorTable
 #include "board/irq.h" // irq_disable
 #include "internal.h" // enable_pclock
-#include "board/misc.h"     // read_magic_key
+#include "board/misc.h"     // jump_to_application
 #include "canboot_main.h" // canboot_main
 
 #define FREQ_PERIPH (CONFIG_CLOCK_FREQ / 2)
@@ -236,35 +236,6 @@ armcm_main(void)
                                   AFIO_MAPR_SWJ_CFG_JTAGDISABLE);
 
     canboot_main();
-}
-
-uint16_t
-read_magic_key(void)
-{
-    irq_disable();
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
-    uint16_t val = BKP->DR4;
-    if (val) {
-    // clear the key
-        PWR->CR |= PWR_CR_DBP;
-        BKP->DR4 = 0;
-        PWR->CR &=~ PWR_CR_DBP;
-    }
-    RCC->APB1ENR &= ~(RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN);
-    irq_enable();
-    return val;
-}
-
-void
-set_magic_key(void)
-{
-    irq_disable();
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
-    PWR->CR |= PWR_CR_DBP;
-    BKP->DR4 = CONFIG_MAGIC_KEY;
-    PWR->CR &=~ PWR_CR_DBP;
-    RCC->APB1ENR &= ~(RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN);
-    irq_enable();
 }
 
 typedef void (*func_ptr)(void);

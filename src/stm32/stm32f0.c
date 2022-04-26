@@ -7,7 +7,7 @@
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // armcm_main
 #include "board/irq.h" // irq_disable
-#include "board/misc.h" // read magic key
+#include "board/misc.h" // jump_to_application
 #include "internal.h" // enable_pclock
 #include "canboot_main.h" // sched_main
 
@@ -114,37 +114,6 @@ armcm_main(void)
 
     timer_init();
     canboot_main();
-}
-
-uint16_t
-read_magic_key(void)
-{
-    irq_disable();
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-    RCC->APB1ENR;
-    uint16_t val = RTC->BKP4R;
-    if (val) {
-    // clear the key
-        PWR->CR |= PWR_CR_DBP;
-        RTC->BKP4R = 0;
-        PWR->CR &=~ PWR_CR_DBP;
-    }
-    RCC->APB1ENR &= ~RCC_APB1ENR_PWREN;
-    irq_enable();
-    return val;
-}
-
-void
-set_magic_key(void)
-{
-    irq_disable();
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-    RCC->APB1ENR;
-    PWR->CR |= PWR_CR_DBP;
-    RTC->BKP4R = CONFIG_MAGIC_KEY;
-    PWR->CR &=~ PWR_CR_DBP;
-    RCC->APB1ENR &= ~RCC_APB1ENR_PWREN;
-    irq_enable();
 }
 
 typedef void (*func_ptr)(void);

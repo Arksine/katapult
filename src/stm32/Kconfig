@@ -184,11 +184,6 @@ config FLASH_PAGE_SIZE
     default 0x800 if MACH_STM32F103 && STM32F1_PAGE_SIZE_800
     default 0x400
 
-config MAGIC_KEY
-    hex
-    default 0x85D3 if MACH_STM32F103
-    default 0x85D3
-
 config BLOCK_SIZE
     int
     default 64
