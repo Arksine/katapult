@@ -80,6 +80,7 @@ reset_handler_stage_two(void)
 // Reset interrupts and stack to take control from bootloaders.  Implemented
 // Kevin's recommendation.
 asm(".section .text.ResetHandler\n"
+    ".balign 8\n"
     ".8byte " __stringify(CANBOOT_SIGNATURE) "\n"
     ".global ResetHandler\n"
     ".type ResetHandler, %function\n"
