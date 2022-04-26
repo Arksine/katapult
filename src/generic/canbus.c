@@ -117,7 +117,7 @@ can_process_query_unassigned(uint32_t id, uint32_t len, uint8_t *data)
     uint8_t send[8];
     send[0] = CANBUS_RESP_NEED_NODEID;
     memcpy(&send[1], canbus_uuid, sizeof(canbus_uuid));
-    send[7] = 1;
+    send[7] = CANBUS_CMD_SET_NODEID_CANBOOT;
     // Send with retry
     for (;;) {
         int ret = canbus_send(CANBUS_ID_ADMIN_RESP, 8, send);
