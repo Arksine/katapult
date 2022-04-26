@@ -46,6 +46,7 @@ NACK = bytearray(CMD_HEADER + b"\xf0")
 
 # Klipper Admin Defs (for jumping to bootloader)
 KLIPPER_ADMIN_ID = 0x3f0
+KLIPPER_SET_NODE_CMD = 0x01
 KLIPPER_REBOOT_CMD = 0x02
 
 # CAN Admin Defs
@@ -329,11 +330,11 @@ class CanSocket:
                 curtime = self._loop.time()
             if resp[0] != CANBUS_RESP_NEED_NODEID:
                 continue
-            app = "unknown"
-            if resp[-1] == 1:
-                app = "CanBoot"
-            elif resp[-1] == 0:
-                app = "Klipper"
+            app_names = {
+                KLIPPER_SET_NODE_CMD: "Klipper",
+                CANBUS_CMD_SET_NODEID: "CanBoot"
+            }
+            app = app_names.get(resp[7], "Unknown")
             data = resp[1:7]
             output_line(f"Detected UUID: {data.hex()}, Application: {app}")
             uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(data)])
