@@ -334,8 +334,9 @@ class CanSocket:
                 app = "CanBoot"
             elif resp[-1] == 0:
                 app = "Klipper"
-            output_line(f"Detected UUID: {resp[1:].hex()}, Application: {app}")
-            uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(resp[1:7])])
+            data = resp[1:7]
+            output_line(f"Detected UUID: {data.hex()}, Application: {app}")
+            uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(data)])
             if uuid not in self.uuids and app == "CanBoot":
                 self.uuids.append(uuid)
         return self.uuids
