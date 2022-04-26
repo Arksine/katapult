@@ -165,6 +165,11 @@ class CanFlasher:
                         )
                     except asyncio.TimeoutError:
                         if tries:
+                            # clear the read buffer
+                            try:
+                                await self.node.read(2048, timeout=.1)
+                            except asyncio.TimeoutError:
+                                pass
                             output_line("\nRead Timeout, Retrying...")
                     else:
                         if len(buf) == self.block_size:
@@ -383,10 +388,15 @@ class CanSocket:
         node = self._set_node_id(uuid)
         flasher = CanFlasher(node, fw_path)
         await asyncio.sleep(.5)
-        await flasher.connect_btl()
-        await flasher.send_file()
-        await flasher.verify_file()
-        await flasher.finish()
+        try:
+            await flasher.connect_btl()
+            await flasher.send_file()
+            await flasher.verify_file()
+        finally:
+            # always attempt to send the complete command. If
+            # there is an error it will exit the bootloader
+            # unless comms were broken
+            await flasher.finish()
 
     async def run_query(self, intf: str):
         try:
