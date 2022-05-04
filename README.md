@@ -2,7 +2,7 @@
  Can Bootloader for STM32F103 MCUs
 
  This bootloader is designed for CAN nodes to be used with
- [Klipper](https://github.com/KevinOConnor/klipper).  The bootloader
+ [Klipper](https://github.com/Klipper3d/klipper).  The bootloader
  itself makes use of Klipper's hardware abstraction layer, stripped
  down to keep the footprint minimal.  Currently the bootloader
  reserves 8 KiB of space.
