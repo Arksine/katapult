@@ -56,7 +56,7 @@ CANBUS_CMD_QUERY_UNASSIGNED = 0x00
 CANBUS_CMD_SET_NODEID = 0x11
 CANBUS_CMD_CLEAR_NODE_ID = 0x12
 CANBUS_RESP_NEED_NODEID = 0x20
-CANBUS_NODE_OFFSET = 0x200
+CANBUS_NODEID_OFFSET = 128
 
 class FlashCanError(Exception):
     pass
@@ -356,11 +356,11 @@ class CanSocket:
         # Convert ID to a list
         plist = [(uuid >> ((5 - i) * 8)) & 0xFF for i in range(6)]
         plist.insert(0, CANBUS_CMD_SET_NODEID)
-        node_id = len(self.nodes)
+        node_id = len(self.nodes) + CANBUS_NODEID_OFFSET
         plist.append(node_id)
         payload = bytes(plist)
         self.admin_node.write(payload)
-        decoded_id = node_id * 2 + CANBUS_NODE_OFFSET
+        decoded_id = node_id * 2 + 0x100
         node = CanNode(decoded_id, self)
         self.nodes[decoded_id + 1] = node
         return node

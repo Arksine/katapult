@@ -106,7 +106,7 @@ can_check_uuid(uint32_t id, uint32_t len, uint8_t *data)
 static uint32_t
 can_decode_nodeid(int nodeid)
 {
-    return (nodeid << 1) + 0x200;
+    return (nodeid << 1) + 0x100;
 }
 
 static void
