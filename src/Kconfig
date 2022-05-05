@@ -20,6 +20,14 @@ config ENABLE_DOUBLE_RESET
     bool "Support bootloader entry on rapid double click of reset button"
     default y
 
+config ENABLE_BUTTON
+    bool "Enable bootloader entry on button (or gpio) state"
+    default n
+
+config BUTTON_PIN
+    string "Button GPIO Pin"
+    depends on ENABLE_BUTTON
+
 config ENABLE_LED
     bool "Enable Status LED"
     default n
