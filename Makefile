@@ -53,13 +53,6 @@ Q=@
 MAKEFLAGS += --no-print-directory
 endif
 
-# Status LED def for buildcommands.py
-ifdef CONFIG_STATUS_LED_PIN
-LED_OPT= -l $(CONFIG_STATUS_LED_PIN)
-else
-LED_OPT=
-endif
-
 # Include board specific makefile
 include src/Makefile
 -include src/$(patsubst "%",%,$(CONFIG_BOARD_DIRECTORY))/Makefile
@@ -87,7 +80,7 @@ $(OUT)%.o.ctr: $(OUT)%.o
 $(OUT)compile_time_request.o: $(patsubst %.c, $(OUT)src/%.o.ctr,$(src-y)) ./scripts/buildcommands.py
 	@echo "  Building $@"
 	$(Q)cat $(patsubst %.c, $(OUT)src/%.o.ctr,$(src-y)) | tr -s '\0' '\n' > $(OUT)compile_time_request.txt
-	$(Q)$(PYTHON) ./scripts/buildcommands.py $(LED_OPT) $(OUT)compile_time_request.txt $(OUT)compile_time_request.c
+	$(Q)$(PYTHON) ./scripts/buildcommands.py $(OUT)compile_time_request.txt $(OUT)compile_time_request.c
 	$(Q)$(CC) $(CFLAGS) -c $(OUT)compile_time_request.c -o $@
 
 ################ Auto generation of "board/" include file link
