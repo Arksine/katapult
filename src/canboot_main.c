@@ -33,7 +33,7 @@
 
 #define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
 
-static uint8_t page_buffer[CONFIG_FLASH_PAGE_SIZE];
+static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE];
 static uint8_t cmd_buf[CMD_BUF_SIZE];
 static uint8_t cmd_pos = 0;
 static uint16_t page_count = 0;
@@ -126,7 +126,7 @@ static void
 write_page(uint16_t page)
 {
     flash_write_page(page, (uint16_t*)page_buffer);
-    memset(page_buffer, 0xFF, CONFIG_FLASH_PAGE_SIZE);
+    memset(page_buffer, 0xFF, sizeof(page_buffer));
     page_pos = 0;
 }
 
@@ -137,7 +137,8 @@ process_page(void) {
     if (page_pos == last_page_pos) {
         return;
     }
-    if (page_pos == CONFIG_FLASH_PAGE_SIZE)
+    uint32_t flash_page_size = flash_get_page_size();
+    if (page_pos == flash_page_size)
         write_page(page_count++);
     if (page_pos % CONFIG_BLOCK_SIZE == 0) {
         current_state = CMD_PENDING;
@@ -204,10 +205,10 @@ canboot_process_rx(uint32_t id, uint32_t len, uint8_t *data)
             break;
         case RX_BLOCK:
             // read into into the page buffer
-            if (page_pos >= CONFIG_FLASH_PAGE_SIZE)
+            if (page_pos >= sizeof(page_buffer))
                 return;
-            else if (page_pos + len > CONFIG_FLASH_PAGE_SIZE)
-                len = CONFIG_FLASH_PAGE_SIZE - cmd_pos;
+            else if (page_pos + len > sizeof(page_buffer))
+                len = sizeof(page_buffer) - page_pos;
             memcpy(&page_buffer[page_pos], data, len);
             page_pos += len;
             break;
