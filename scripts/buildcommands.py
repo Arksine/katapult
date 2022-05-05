@@ -184,6 +184,47 @@ uint32_t led_gpio = %d, led_gpio_high = %d; // "%s"
 Handlers.append(HandleStatusLED())
 
 ######################################################################
+# Button entry functionality
+######################################################################
+
+class HandleButton:
+    def __init__(self):
+        self.pin = None
+        self.ctr_dispatch = { 'DECL_BUTTON': self.decl_button }
+    def decl_button(self, req):
+        pin = req.split(None, 1)[1].strip()
+        if pin.startswith('"') and pin.endswith('"'):
+            pin = pin[1:-1].strip()
+        self.pin = pin
+    def generate_code(self, options):
+        button_gpio = button_high = button_pullup = 0
+        pin = self.pin
+        if pin:
+            if pin[0] in "^~":
+                button_pullup = 1
+                if pin[0] == "~":
+                    button_pullup = -1
+                pin = pin[1:].strip()
+            button_high = 1
+            if pin[0] == "!":
+                button_high = 0
+                pin = pin[1:].strip()
+            avail_pins = HandlerEnumerations.get_available_pins()
+            reserved_pins = HandlerConstants.get_reserved_pins()
+            button_gpio = avail_pins.get(pin)
+            if button_gpio is None:
+                error("Pin %s is not available for this build" % pin)
+            if pin in reserved_pins:
+                error("Pin %s is reserved by an active MCU peripheral" % pin)
+        fmt = """
+int32_t button_gpio = %d, button_high = %d, button_pullup = %d; // "%s"
+"""
+        return fmt % (button_gpio, button_high, button_pullup, self.pin)
+
+
+Handlers.append(HandleButton())
+
+######################################################################
 # Main code
 ######################################################################
 
