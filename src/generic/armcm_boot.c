@@ -18,6 +18,20 @@ extern uint32_t _stack_end;
  * Basic interrupt handlers
  ****************************************************************/
 
+uint64_t
+get_bootup_code(void)
+{
+    uint64_t *req_code = (void*)&_stack_end;
+    return *req_code;
+}
+
+void
+set_bootup_code(uint64_t code)
+{
+    uint64_t *req_code = (void*)&_stack_end;
+    *req_code = code;
+}
+
 void __noreturn __visible
 reset_handler_stage_two(void)
 {

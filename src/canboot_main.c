@@ -266,22 +266,20 @@ enter_bootloader(void)
 void
 canboot_main(void)
 {
-    uint32_t req_addr = *(uint32_t *)CONFIG_FLASH_START;
-    volatile uint64_t* boot_request_sig = (volatile uint64_t *)req_addr;
-
     // Enter the bootloader in the following conditions:
     // - The request signature is set in memory (request from app)
     // - No application code is present
-    if ((*boot_request_sig == REQUEST_SIG ) || !check_application_code()) {
-        *boot_request_sig = 0;
+    uint64_t bootup_code = get_bootup_code();
+    if (bootup_code == REQUEST_SIG || !check_application_code()) {
+        set_bootup_code(0);
         enter_bootloader();
     }
 
     // set request signature and delay for two seconds.  This enters the bootloader if
     // the reset button is double clicked
-    *boot_request_sig = REQUEST_SIG;
+    set_bootup_code(REQUEST_SIG);
     udelay(2000000);
-    *boot_request_sig = 0;
+    set_bootup_code(0);
     // No reset, read the key back out to clear it
 
     // jump to app
