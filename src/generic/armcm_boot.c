@@ -35,39 +35,6 @@ set_bootup_code(uint64_t code)
 void __noreturn __visible
 reset_handler_stage_two(void)
 {
-    int i;
-
-    // Clear all enabled user interrupts and user pending interrupts
-    for (i = 0; i < ARRAY_SIZE(NVIC->ICER); i++) {
-        NVIC->ICER[i] = 0xFFFFFFFF;
-        __DSB();
-        NVIC->ICPR[i] = 0xFFFFFFFF;
-    }
-
-    // Reset all user interrupt priorities
-    for (i = 0; i < ARRAY_SIZE(NVIC->IP); i++)
-        NVIC->IP[i] = 0;
-
-    // Disable SysTick interrupt
-    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk;
-    __DSB();
-
-    // Clear pending pendsv and systick interrupts
-    SCB->ICSR = SCB_ICSR_PENDSVCLR_Msk | SCB_ICSR_PENDSTCLR_Msk;
-
-    // Reset all system interrupt priorities
-#if __CORTEX_M >= 7
-    for (i = 0; i < ARRAY_SIZE(SCB->SHPR); i++)
-        SCB->SHPR[i] = 0;
-#else
-    for (i = 0; i < ARRAY_SIZE(SCB->SHP); i++)
-        SCB->SHP[i] = 0;
-#endif
-
-    __DSB();
-    __ISB();
-    __enable_irq();
-
     // Copy global variables from flash to ram
     uint32_t count = (&_data_end - &_data_start) * 4;
     __builtin_memcpy(&_data_start, &_data_flash, count);
@@ -91,19 +58,13 @@ reset_handler_stage_two(void)
 #define CANBOOT_SIGNATURE 0x21746f6f426e6143 // CanBoot!
 
 // Initial code entry point - invoked by the processor after a reset
-// Reset interrupts and stack to take control from bootloaders.  Implemented
-// Kevin's recommendation.
 asm(".section .text.ResetHandler\n"
     ".balign 8\n"
     ".8byte " __stringify(CANBOOT_SIGNATURE) "\n"
     ".global ResetHandler\n"
     ".type ResetHandler, %function\n"
     "ResetHandler:\n"
-    "    cpsid i\n"
-    "    ldr r3, =_stack_end\n"
-    "    mov sp, r3\n"
     "    b reset_handler_stage_two\n"
-    "    .pool\n"
     );
 extern void ResetHandler();
 DECL_ARMCM_IRQ(ResetHandler, -15);
