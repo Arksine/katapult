@@ -18,4 +18,6 @@ uint8_t timer_is_before(uint32_t time1, uint32_t time2);
 uint32_t timer_read_time(void);
 void udelay(uint32_t usecs);
 
+uint16_t crc16_ccitt(uint8_t *buf, uint_fast8_t len);
+
 #endif // misc.h
