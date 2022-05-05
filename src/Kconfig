@@ -16,6 +16,10 @@ config CANBUS_FREQUENCY
     int "CAN bus speed"
     default 500000
 
+config ENABLE_DOUBLE_RESET
+    bool "Support bootloader entry on rapid double click of reset button"
+    default y
+
 config ENABLE_LED
     bool "Enable Status LED"
     default n
