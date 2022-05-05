@@ -115,19 +115,3 @@ armcm_main(void)
     timer_init();
     canboot_main();
 }
-
-typedef void (*func_ptr)(void);
-
-void
-jump_to_application(void)
-{
-    func_ptr application = (func_ptr) *(volatile uint32_t*)
-        (CONFIG_APPLICATION_START + 0x04);
-
-    // Set the main stack pointer
-    asm volatile ("MSR msp, %0" : : "r" (*(volatile uint32_t*)
-        CONFIG_APPLICATION_START) : );
-
-    // Jump to application
-    application();
-}
