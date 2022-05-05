@@ -8,6 +8,18 @@
 #include "autoconf.h"
 #include "internal.h"
 
+uint32_t
+flash_get_page_size(void)
+{
+    if (CONFIG_MACH_STM32F103) {
+        // Check for a 1K page size on the stm32f103
+        uint16_t *flash_size = (void*)FLASHSIZE_BASE;
+        if (*flash_size < 256)
+            return 0x400;
+    }
+    return CONFIG_MAX_FLASH_PAGE_SIZE;
+}
+
 static void
 unlock_flash(void)
 {
@@ -28,8 +40,9 @@ void
 flash_write_page(uint16_t page_index, uint16_t *data)
 {
     // A page_index of 0 is the first page of the application area
+    uint32_t flash_page_size = flash_get_page_size();
     uint16_t* page_addr = (uint16_t*)(CONFIG_APPLICATION_START +
-        (page_index * CONFIG_FLASH_PAGE_SIZE));
+        (page_index * flash_page_size));
 
     // make sure flash is unlocked
     if (FLASH->CR & FLASH_CR_LOCK)
@@ -46,7 +59,7 @@ flash_write_page(uint16_t page_index, uint16_t *data)
 
     // Write page
     FLASH->CR |= FLASH_CR_PG;
-    for (uint16_t i = 0; i < CONFIG_FLASH_PAGE_SIZE / 2; i++)
+    for (uint16_t i = 0; i < flash_page_size / 2; i++)
     {
         page_addr[i] = data[i];
         while (FLASH->SR & FLASH_SR_BSY);

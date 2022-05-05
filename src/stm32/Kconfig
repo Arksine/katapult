@@ -167,21 +167,10 @@ config STM32F0_TRIM
         Default is 16 (use factory default). Each increment increases
         the clock rate by ~240KHz.
 
-choice
-depends on MACH_STM32F103
-prompt "Flash Page Size"
-config STM32F1_PAGE_SIZE_400
-    bool "Low/Medium Density (1024 KiB Page Size)"
-config STM32F1_PAGE_SIZE_800
-    bool "High Density (2048 KiB Page Size)"
-endchoice
-
-config FLASH_PAGE_SIZE
+config MAX_FLASH_PAGE_SIZE
     hex
     default 0x400 if MACH_STM32F042
-    default 0x800 if MACH_STM32F072
-    default 0x400 if MACH_STM32F103 && STM32F1_PAGE_SIZE_400
-    default 0x800 if MACH_STM32F103 && STM32F1_PAGE_SIZE_800
+    default 0x800 if MACH_STM32F072 || MACH_STM32F103
     default 0x400
 
 config BLOCK_SIZE
