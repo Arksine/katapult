@@ -245,7 +245,7 @@ check_double_reset(void)
     // set request signature and delay for two seconds.  This enters the bootloader if
     // the reset button is double clicked
     set_bootup_code(REQUEST_SIG);
-    udelay(2000000);
+    udelay(500000);
     set_bootup_code(0);
     // No reset, read the key back out to clear it
 }
