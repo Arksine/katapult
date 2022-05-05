@@ -5,6 +5,8 @@
 #include <stdint.h> // uint8_t
 #include "autoconf.h" // CONFIG_MACH_STM32F0
 
+uint64_t get_bootup_code(void);
+void set_bootup_code(uint64_t code);
 void jump_to_application(void);
 
 // Timer Functions
