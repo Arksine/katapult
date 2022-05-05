@@ -219,6 +219,20 @@ check_application_code(void)
     return 0;
 }
 
+// Check for a bootloader request via double tap of reset button
+static void
+check_double_reset(void)
+{
+    if (!CONFIG_ENABLE_DOUBLE_RESET)
+        return;
+    // set request signature and delay for two seconds.  This enters the bootloader if
+    // the reset button is double clicked
+    set_bootup_code(REQUEST_SIG);
+    udelay(2000000);
+    set_bootup_code(0);
+    // No reset, read the key back out to clear it
+}
+
 
 /****************************************************************
  * Startup
@@ -255,13 +269,7 @@ canboot_main(void)
         set_bootup_code(0);
         enter_bootloader();
     }
-
-    // set request signature and delay for two seconds.  This enters the bootloader if
-    // the reset button is double clicked
-    set_bootup_code(REQUEST_SIG);
-    udelay(2000000);
-    set_bootup_code(0);
-    // No reset, read the key back out to clear it
+    check_double_reset();
 
     // jump to app
     jump_to_application();
