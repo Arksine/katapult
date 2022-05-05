@@ -237,26 +237,3 @@ armcm_main(void)
 
     canboot_main();
 }
-
-typedef void (*func_ptr)(void);
-
-void
-jump_to_application(void)
-{
-    func_ptr application = (func_ptr) *(volatile uint32_t*)
-        (CONFIG_APPLICATION_START + 0x04);
-
-    // Reset clocks
-    RCC->AHBENR = 0x14;
-    RCC->APB1ENR = 0;
-    RCC->APB2ENR = 0;
-
-    // Reset the Vector table to the application address
-    SCB->VTOR = CONFIG_APPLICATION_START;
-    // Set the main stack pointer
-    asm volatile ("MSR msp, %0" : : "r" (*(volatile uint32_t*)
-        CONFIG_APPLICATION_START) : );
-
-    // Jump to application
-    application();
-}

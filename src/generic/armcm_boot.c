@@ -7,16 +7,12 @@
 #include "armcm_boot.h" // DECL_ARMCM_IRQ
 #include "autoconf.h" // CONFIG_MCU
 #include "board/internal.h" // SysTick
-
+#include "board/irq.h" // irq_disable
 
 // Symbols created by armcm_link.lds.S linker script
 extern uint32_t _data_start, _data_end, _data_flash;
 extern uint32_t _bss_start, _bss_end, _stack_start;
 extern uint32_t _stack_end;
-
-/****************************************************************
- * Basic interrupt handlers
- ****************************************************************/
 
 uint64_t
 get_bootup_code(void)
@@ -32,9 +28,34 @@ set_bootup_code(uint64_t code)
     *req_code = code;
 }
 
+#define REQUEST_START_APP 0x7b06ec45a9a8243d
+
+void
+jump_to_application(void)
+{
+    irq_disable();
+    set_bootup_code(REQUEST_START_APP);
+    NVIC_SystemReset();
+}
+
+static void
+start_application(void)
+{
+    set_bootup_code(0);
+    uint32_t *vtor = (void*)CONFIG_APPLICATION_START;
+#if __VTOR_PRESENT
+    SCB->VTOR = (uint32_t)vtor;
+#endif
+    asm volatile("MSR msp, %0\n    bx %1" : : "r"(vtor[0]), "r"(vtor[1]));
+}
+
 void __noreturn __visible
 reset_handler_stage_two(void)
 {
+    uint64_t bootup_code = get_bootup_code();
+    if (bootup_code == REQUEST_START_APP)
+        start_application();
+
     // Copy global variables from flash to ram
     uint32_t count = (&_data_end - &_data_start) * 4;
     __builtin_memcpy(&_data_start, &_data_flash, count);
