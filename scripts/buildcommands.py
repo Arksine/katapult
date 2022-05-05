@@ -11,8 +11,6 @@ FILEHEADER = """
 
 #include <stdint.h>
 #include "compiler.h"
-#include "board/misc.h"
-#include "board/gpio.h"
 """
 
 def error(msg):
@@ -155,59 +153,32 @@ Handlers.append(Handle_arm_irq())
 
 class HandleStatusLED:
     def __init__(self):
-        self.ctr_dispatch = {}
+        self.pin = None
+        self.ctr_dispatch = { 'DECL_LED_PIN': self.decl_led_pin }
+    def decl_led_pin(self, req):
+        pin = req.split(None, 1)[1].strip()
+        if pin.startswith('"') and pin.endswith('"'):
+            pin = pin[1:-1].strip()
+        self.pin = pin
     def generate_code(self, options):
-        pin = options.led_pin
-        if not pin:
-            led_def = led_init = led_toggle = led_on = led_off = ""
-        else:
-            led_def = "static struct gpio_out led;"
-            led_init = "led = gpio_out_setup(%d, %d);"
-            led_toggle = "gpio_out_toggle(led);"
-            led_write = "gpio_out_write(led, %d);"
-            write_on = 1
+        led_gpio = led_gpio_high = 0
+        pin = self.pin
+        if pin:
+            led_gpio_high = 1
             if pin[0] == "!":
-                write_on = 0
-                pin = pin[1:].upper()
+                led_gpio_high = 0
+                pin = pin[1:].strip()
             avail_pins = HandlerEnumerations.get_available_pins()
             reserved_pins = HandlerConstants.get_reserved_pins()
-            pin_num = avail_pins.get(pin)
-            if pin_num is None:
+            led_gpio = avail_pins.get(pin)
+            if led_gpio is None:
                 error("Pin %s is not available for this build" % pin)
             if pin in reserved_pins:
                 error("Pin %s is reserved by an active MCU peripheral" % pin)
-            led_init = led_init % (pin_num, write_on)
-            led_on = led_write % (write_on)
-            led_off = led_write % (int(not write_on))
         fmt = """
-
-%s
-
-void __always_inline
-led_init(void)
-{
-    %s
-}
-
-void __always_inline
-led_toggle(void)
-{
-    %s
-}
-
-void __always_inline
-led_on(void)
-{
-    %s
-}
-
-void __always_inline
-led_off(void)
-{
-    %s
-}
+uint32_t led_gpio = %d, led_gpio_high = %d; // "%s"
 """
-        return fmt % (led_def, led_init, led_toggle, led_on, led_off)
+        return fmt % (led_gpio, led_gpio_high, self.pin)
 
 
 Handlers.append(HandleStatusLED())
@@ -219,8 +190,6 @@ Handlers.append(HandleStatusLED())
 def main():
     usage = "%prog [options] <cmd section file> <output.c>"
     opts = optparse.OptionParser(usage)
-    opts.add_option("-l", "--ledpin", dest="led_pin", default="",
-                    help="LED Status Pin")
     opts.add_option("-v", action="store_true", dest="verbose",
                     help="enable debug messages")
     options, args = opts.parse_args()

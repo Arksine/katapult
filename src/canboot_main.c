@@ -10,6 +10,7 @@
 #include "board/canbus.h"   // canbus_send
 #include "board/flash.h"    // write_page
 #include "canboot_main.h"   // canboot_main
+#include "led.h"            // check_blink_time
 
 
 #define COMMAND_SIZE    8
@@ -38,7 +39,6 @@ static uint8_t cmd_buf[CMD_BUF_SIZE];
 static uint8_t cmd_pos = 0;
 static uint16_t page_count = 0;
 static uint16_t page_pos = 0;
-static uint32_t last_blink_time = 0;
 static uint16_t cmd_arg = 0;
 enum { CMD_PENDING, RX_BLOCK, RX_DONE, TX_BLOCK, COMPLETE };
 static uint8_t current_state = CMD_PENDING;
@@ -149,17 +149,6 @@ process_page(void) {
         send_ack(ACK_BLOCK_RX, cmd_arg);
 }
 
-static void
-check_blink_time(uint32_t usec)
-{
-    uint32_t curtime = timer_read_time();
-    uint32_t endtime = last_blink_time + timer_from_us(usec);
-    if (timer_is_before(endtime, curtime)) {
-        led_toggle();
-        last_blink_time = timer_read_time();
-    }
-}
-
 static inline void
 process_state(void)
 {
@@ -238,16 +227,7 @@ static void
 enter_bootloader(void)
 {
     can_init();
-
-    // TODO: this is temporary.  It lets us know
-    // that the bootloader has been entered.  We can
-    // also toggle this as a means to visualize transfers.
-    // We will want to set it up in the menuconfig
     led_init();
-    // The short delay is simply to ensure that the Debug Timer is
-    // enabled
-    udelay(10);
-    last_blink_time = timer_read_time();
 
     for (;;) {
         canbus_rx_task();
