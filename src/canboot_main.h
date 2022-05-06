@@ -3,7 +3,7 @@
 
 #include <stdint.h> // uint32_t
 
-void canboot_process_rx(uint32_t id, uint32_t len, uint8_t *data);
+void canboot_process_rx(uint8_t *data, uint32_t len);
 void canboot_sendf(uint8_t* data, uint16_t size);
 void canboot_main(void);
 
