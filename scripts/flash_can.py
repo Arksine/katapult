@@ -25,13 +25,22 @@ def output(msg: str) -> None:
     sys.stdout.write(msg)
     sys.stdout.flush()
 
+# Standard crc16 ccitt, take from msgproto.py in Klipper
+def crc16_ccitt(buf: Union[bytes, bytearray]) -> int:
+    crc = 0xffff
+    for data in buf:
+        data ^= crc & 0xff
+        data ^= (data & 0x0f) << 4
+        crc = ((data << 8) | (crc >> 8)) ^ (data >> 4) ^ (data << 3)
+    return crc & 0xFFFF
+
 logging.basicConfig(level=logging.INFO)
 CAN_FMT = "<IB3x8s"
 CAN_READER_LIMIT = 1024 * 1024
 
 # Canboot Defs
-CMD_HEADER = b"cbtl"
-CMD_TRAILER = 0x03
+CMD_HEADER = b'\x01\x88'
+CMD_TRAILER = b'\x99\x03'
 BOOTLOADER_CMDS = {
     'CONNECT': 0x11,
     'SEND_BLOCK': 0x12,
@@ -40,9 +49,14 @@ BOOTLOADER_CMDS = {
     'COMPLETE': 0x15
 }
 
-ACK_CMD = bytearray(CMD_HEADER + b"\xa0")
-ACK_BLOCK_RECD = bytearray(CMD_HEADER + b"\xa1")
-NACK = bytearray(CMD_HEADER + b"\xf0")
+ACK_SUCCESS = 0xa0
+NACK_RESPONSES = {
+    0xf0: "Invalid Command",
+    0xf1: "CRC Mismatch",
+    0xf2: "Invalid Payload",
+    0xf3: "Invalid Trailer",
+    0xf4: "Invalid Payload Length"
+}
 
 # Klipper Admin Defs (for jumping to bootloader)
 KLIPPER_ADMIN_ID = 0x3f0
@@ -76,7 +90,8 @@ class CanFlasher:
 
     async def connect_btl(self):
         output_line("Attempting to connect to bootloader")
-        self.block_size = await self.send_command('CONNECT')
+        ret = await self.send_command('CONNECT')
+        self.block_size, = struct.unpack(">H", ret[2:])
         if self.block_size not in [64, 128, 256, 512]:
             raise FlashCanError("Invalid Block Size: %d" % (self.block_size,))
         output_line("Connected, Block Size: %d bytes" % (self.block_size,))
@@ -84,30 +99,74 @@ class CanFlasher:
     async def send_command(
         self,
         cmdname: str,
-        ack: bytearray = ACK_CMD,
-        arg: int = 0,
+        payload: bytes = b"",
+        response_length: int = 12,
         tries: int = 5
-    ) -> int:
+    ) -> bytearray:
+        word_cnt = (len(payload) // 4) & 0xFF
         cmd = BOOTLOADER_CMDS[cmdname]
         out_cmd = bytearray(CMD_HEADER)
         out_cmd.append(cmd)
-        out_cmd.append((arg >> 8) & 0xFF)
-        out_cmd.append(arg & 0xFF)
-        out_cmd.append(CMD_TRAILER)
+        out_cmd.append(word_cnt)
+        if payload:
+            out_cmd.extend(payload)
+        out_cmd.extend(CMD_TRAILER)
+        crc = crc16_ccitt(out_cmd)
+        out_cmd.extend(struct.pack(">H", crc))
         while tries:
             try:
-                ret = await self.node.write_with_response(out_cmd, 8)
+                ret = await self.node.write_with_response(
+                    out_cmd, response_length
+                )
                 data = bytearray(ret)
             except Exception:
                 logging.exception("Can Read Error")
             else:
-                if (
-                    len(data) == 8 and
-                    data[:5] == ack and
-                    data[-1] == CMD_TRAILER
-                ):
-                    return (data[5] << 8) | data[6]
+                header = data[:2]
+                trailer = data[-4:-2]
+                recd_crc, = struct.unpack(">H", data[-2:])
+                calc_crc = crc16_ccitt(data[:-2])
+                recd_ack = data[2]
+                recd_len = data[3] * 4
+                cmd_response = data[4]
+                if header != CMD_HEADER:
+                    logging.info(
+                        f"Command '{cmdname}': Invalid Header Received "
+                        f"0x{header.hex()}"
+                    )
+                elif trailer != CMD_TRAILER:
+                    logging.info(
+                        f"Command '{cmdname}': Invalid Trailer Received "
+                        f"0x{trailer.hex()}"
+                    )
+                elif recd_crc != calc_crc:
+                    logging.info(
+                        f"Command '{cmdname}': Frame CRC Mismatch, expected: "
+                        f"{calc_crc}, received {recd_crc}"
+                    )
+                elif recd_ack != ACK_SUCCESS:
+                    nack_string = NACK_RESPONSES.get(recd_ack, "Unknown Error")
+                    msg = f"Command '{cmdname}': Received NACK, {nack_string}"
+                    if recd_ack == 0xf0:
+                        msg += f", 0x{cmd_response:2x}"
+                    elif recd_ack == 0xf1:
+                        mcu_crc, = struct.unpack(">H", data[6:8])
+                        msg += f", sent crc: {crc}, mcu_crc: {mcu_crc}"
+                    logging.info(msg)
+                elif cmd_response != cmd:
+                    logging.info(
+                        f"Command '{cmdname}': Acknowledged wrong command, "
+                        f"expected: {cmd:2x}, received: {cmd_response:2x}"
+                    )
+                else:
+                    # Validation passed, return payload
+                    return data[4:recd_len + 4]
             tries -= 1
+            # clear the read buffer
+            try:
+                await self.node.read(256, timeout=.1)
+            except asyncio.TimeoutError:
+                pass
             await asyncio.sleep(.1)
         raise FlashCanError("Error sending command [%s] to Can Device"
                             % (cmdname))
@@ -124,27 +183,32 @@ class CanFlasher:
                 buf = f.read(self.block_size)
                 if not buf:
                     break
-                await self.send_command('SEND_BLOCK', arg=self.block_count)
                 if len(buf) < self.block_size:
                     buf += b"\xFF" * (self.block_size - len(buf))
                 self.fw_sha.update(buf)
-                self.node.write(buf)
-                ack = await self.node.readexactly(8)
-                expect = bytearray(ACK_BLOCK_RECD)
-                expect.append((self.block_count >> 8) & 0xFF)
-                expect.append(self.block_count & 0xFF)
-                expect.append(CMD_TRAILER)
-                if ack != bytes(expect):
-                    output_line("\nExpected resp: %s, Recd: %s" % (expect, ack))
-                    raise FlashCanError("Did not receive ACK for sent block %d"
-                                        % (self.block_count))
+                prefix = struct.pack(">I", self.block_count)
+                for _ in range(3):
+                    resp = await self.send_command('SEND_BLOCK', prefix + buf)
+                    recd_block, = struct.unpack(">H", resp[2:])
+                    if recd_block == self.block_count:
+                        break
+                    logging.info(
+                        f"Block write mismatch: expected: {self.block_count}, "
+                        f"received: {recd_block}"
+                    )
+                    await asyncio.sleep(.1)
+                else:
+                    raise FlashCanError(
+                        f"Flash write failed, block {self.block_count}"
+                    )
                 self.block_count += 1
                 uploaded = self.block_count * self.block_size
                 pct = int(uploaded / float(self.file_size) * 100 + .5)
                 if pct >= last_percent + 2:
                     last_percent += 2.
                     output("#")
-            page_count = await self.send_command('SEND_EOF')
+            resp = await self.send_command('SEND_EOF')
+            page_count, = struct.unpack(">H", resp[2:])
             output_line("]\n\nWrite complete: %d pages" % (page_count))
 
     async def verify_file(self):
@@ -153,33 +217,21 @@ class CanFlasher:
         output("\n[")
         ver_sha = hashlib.sha1()
         for i in range(self.block_count):
-            tries = 3
-            while tries:
-                resp = await self.send_command("REQUEST_BLOCK", arg=i)
-                if resp == i:
-                    # command should ack with the requested block as
-                    # parameter
-                    try:
-                        buf = await self.node.readexactly(
-                            self.block_size, timeout=5.
-                        )
-                    except asyncio.TimeoutError:
-                        if tries:
-                            # clear the read buffer
-                            try:
-                                await self.node.read(2048, timeout=.1)
-                            except asyncio.TimeoutError:
-                                pass
-                            output_line("\nRead Timeout, Retrying...")
-                    else:
-                        if len(buf) == self.block_size:
-                            break
-                tries -= 1
+            for _ in range(3):
+                payload = struct.pack(">I", i)
+                resp = await self.send_command("REQUEST_BLOCK", payload, 76)
+                recd_block, = struct.unpack(">H", resp[2:4])
+                if recd_block == i:
+                    break
+                logging.info(
+                    f"Block read mismatch: expected: {i}, "
+                    f"received: {recd_block}"
+                )
                 await asyncio.sleep(.1)
             else:
                 output_line("Error")
                 raise FlashCanError("Block Request Error, block: %d" % (i,))
-            ver_sha.update(buf)
+            ver_sha.update(resp[4:])
             pct = int(i * self.block_size / float(self.file_size) * 100 + .5)
             if pct >= last_percent + 2:
                 last_percent += 2
