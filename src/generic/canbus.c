@@ -189,7 +189,7 @@ canbus_process_data(uint32_t id, uint32_t len, uint8_t *data)
 {
     if (!id || id != canbus_assigned_id)
         return;
-    canboot_process_rx(id, len, data);
+    canboot_process_rx(data, len);
     canbus_notify_rx();
 }
 
