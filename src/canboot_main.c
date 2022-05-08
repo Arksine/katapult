@@ -13,27 +13,21 @@
 #include "canboot_main.h"   // canboot_main
 #include "ctr.h"            // DECL_CTR
 #include "led.h"            // check_blink_time
-#include "byteorder.h"      // be16_to_cpu
+#include "byteorder.h"      // cpu_to_le32
 
 
 #define PROTO_SIZE      4
 #define CMD_BUF_SIZE    CONFIG_BLOCK_SIZE + 64
-#define MAX_BUF_SIZE     CONFIG_BLOCK_SIZE + 12
+#define MAX_OBUF_SIZE   CONFIG_BLOCK_SIZE + 16
 #define CMD_CONNECT     0x11
 #define CMD_RX_BLOCK    0x12
 #define CMD_RX_EOF      0x13
 #define CMD_REQ_BLOCK   0x14
 #define CMD_COMPLETE    0x15
 #define ACK_COMMAND     0xa0
-// NACK Commands
-#define NACK_BAD_CMD    0xf0
-#define NACK_CRC_ERR    0xf1
-#define NACK_BAD_BLOCK  0xf2
-#define NACK_BAD_TRAIL  0xf3
-#define NACK_BAD_LEN    0xf4
 
 // Command Format:
-// <2 byte header> <1 byte cmd> <1 byte data word count> <data> <2 byte trailer> <2 byte crc>
+// <2 byte header> <1 byte cmd> <1 byte data word count> <data> <2 byte crc> <2 byte trailer>
 #define CMD_HEADER      0x0188
 #define CMD_TRAILER     0x9903
 
@@ -42,6 +36,7 @@
 
 #define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
 
+static uint8_t nack[8] = {0x01, 0x88, 0xF1, 0x00, 0x68, 0x95, 0x99, 0x03};
 static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE];
 // Input Tracking
 static uint8_t cmd_buf[CMD_BUF_SIZE];
@@ -53,17 +48,14 @@ static uint32_t blink_time = WAIT_BLINK_TIME;
 static uint8_t complete = 0;
 
 static void
-send_ack(uint8_t ack_type, uint32_t arg)
+send_ack(uint32_t* data, uint8_t payload_len)
 {
-    uint32_t out[3];
-    // First four bytes: 2 byte header, ack_type, data length (always 1)
-    out[0] = cpu_to_be32((CMD_HEADER << 16) | (ack_type << 8) | 1);
-    out[1] = cpu_to_be32(arg);
-    out[2] = cpu_to_be32(CMD_TRAILER << 16);
+    // First four bytes: 2 byte header, ack_type, data length
+    data[0] = cpu_to_le32(payload_len << 24 | ACK_COMMAND << 16 | 0x8801);
     // calculate the CRC
-    uint16_t crc = crc16_ccitt((uint8_t *)out, 10);
-    out[2] = cpu_to_be32(CMD_TRAILER << 16 | crc);
-    canboot_sendf((uint8_t *)out, 12);
+    uint16_t crc = crc16_ccitt((uint8_t *)data + 2, payload_len * 4 + 2);
+    data[payload_len + 1] = cpu_to_le32(0x0399 << 16 | crc);
+    canboot_sendf((uint8_t *)data, (payload_len + 2) * 4);
 }
 
 static void
@@ -76,26 +68,23 @@ write_page(uint16_t page)
 }
 
 static void
-process_read_block(uint8_t cmd, uint32_t* data, uint8_t data_len) {
-    uint32_t block_index = be32_to_cpu(data[0]);
-    uint8_t word_len = CONFIG_BLOCK_SIZE / 4 + 1;
-    uint32_t out[MAX_BUF_SIZE];
-    out[0] = cpu_to_be32((CMD_HEADER << 16) | (ACK_COMMAND << 8) | word_len);
-    out[1] = cpu_to_be32((cmd << 24) | (block_index & 0xFFFF));
-    flash_read_block(block_index, &out[2]);
-    out[word_len + 1] = cpu_to_be32(CMD_TRAILER << 16);
-    uint16_t crc = crc16_ccitt((uint8_t *)out, word_len * 4 + 6);
-    out[word_len + 1] |= cpu_to_be32(CMD_TRAILER << 16 | crc);
-    canboot_sendf((uint8_t *)out, (word_len + 2) * 4);
+process_read_block(uint32_t* data, uint8_t data_len) {
+    uint32_t block_index = le32_to_cpu(data[0]);
+    uint8_t word_len = CONFIG_BLOCK_SIZE / 4 + 2;
+    uint32_t out[MAX_OBUF_SIZE];
+    out[1] = cpu_to_le32(CMD_REQ_BLOCK);
+    out[2] = cpu_to_le32(block_index);
+    flash_read_block(block_index, &out[3]);
+    send_ack(out, word_len);
 }
 
 static void
-process_write_block(uint8_t cmd, uint32_t* data, uint8_t data_len) {
+process_write_block(uint32_t* data, uint8_t data_len) {
     if (data_len != (CONFIG_BLOCK_SIZE / 4) + 1) {
-        send_ack(NACK_BAD_BLOCK, (cmd << 24));
+        canboot_sendf(nack, 8);
         return;
     }
-    uint32_t block_index = be32_to_cpu(data[0]);
+    uint32_t block_index = le32_to_cpu(data[0]);
     uint32_t byte_addr = block_index * CONFIG_BLOCK_SIZE;
     uint32_t flash_page_size = flash_get_page_size();
     uint32_t page_pos = byte_addr % flash_page_size;
@@ -105,7 +94,40 @@ process_write_block(uint8_t cmd, uint32_t* data, uint8_t data_len) {
     page_pos += CONFIG_BLOCK_SIZE;
     if (page_pos == flash_page_size)
         write_page(page_index);
-    send_ack(ACK_COMMAND, (cmd << 24) | (block_index & 0xFFFF));
+    uint32_t out[4];
+    out[1] = cpu_to_le32(CMD_RX_BLOCK);
+    out[2] = cpu_to_le32(block_index);
+    send_ack(out, 2);
+}
+
+static void
+process_eof(void)
+{
+    if (page_pending)
+        write_page(last_page_written + 1);
+    flash_complete();
+    uint32_t out[4];
+    out[1] = cpu_to_le32(CMD_RX_EOF);
+    out[2] = cpu_to_le32(last_page_written + 1);
+    send_ack(out, 2);
+}
+
+static void
+process_complete(void)
+{
+    uint32_t out[3];
+    out[1] = cpu_to_le32(CMD_COMPLETE);
+    send_ack(out, 1);
+    complete = 1;
+}
+
+static void
+process_connnect(void)
+{   uint32_t out[4];
+    out[1] = cpu_to_le32(CMD_CONNECT);
+    out[2] = cpu_to_le32(CONFIG_BLOCK_SIZE);
+    send_ack(out, 2);
+
 }
 
 static inline void
@@ -113,30 +135,26 @@ process_command(uint8_t cmd, uint32_t* data, uint8_t data_len)
 {
     switch (cmd) {
         case CMD_CONNECT:
-            send_ack(ACK_COMMAND, (cmd << 24) | CONFIG_BLOCK_SIZE);
+            process_connnect();
             break;
         case CMD_RX_BLOCK:
             blink_time = XFER_BLINK_TIME;
-            process_write_block(cmd, data, data_len);
+            process_write_block(data, data_len);
             break;
         case CMD_RX_EOF:
-            if (page_pending)
-                write_page(last_page_written + 1);
-            flash_complete();
             blink_time = WAIT_BLINK_TIME;
-            send_ack(ACK_COMMAND, (cmd << 24) | (last_page_written + 1));
+            process_eof();
             break;
         case CMD_REQ_BLOCK:
             blink_time = XFER_BLINK_TIME;
-            process_read_block(cmd, data, data_len);
+            process_read_block(data, data_len);
             break;
         case CMD_COMPLETE:
-            send_ack(ACK_COMMAND, cmd << 24);
-            complete = 1;
+            process_complete();
             break;
         default:
             // Unknown command or gabage data, NACK it
-            send_ack(NACK_BAD_CMD, cmd << 24);
+            canboot_sendf(nack, 8);
     }
 }
 
@@ -149,27 +167,29 @@ decode_command(void)
         if (tmpbuf[0] == 0x01) {
             // potential match
             if (remaining >= PROTO_SIZE) {
-                uint16_t header = be16_to_cpu(*(uint16_t *)(tmpbuf));
+                uint16_t header = tmpbuf[0] << 8 | tmpbuf[1];
                 uint8_t cmd = tmpbuf[2];
                 uint8_t length = tmpbuf[3];
                 uint16_t full_length = PROTO_SIZE * 2 + length * 4;
                 if (header == CMD_HEADER) {
                     if (full_length > CMD_BUF_SIZE) {
                         // packet too large, nack it and move on
-                        send_ack(NACK_BAD_LEN, cmd << 24);
+                        canboot_sendf(nack, 8);
                     } else if (remaining >= full_length) {
                         remaining -= full_length;
                         uint16_t fpos = full_length - 4;
-                        uint16_t trailer = be16_to_cpu(*(uint16_t *)(&tmpbuf[fpos]));
-                        uint16_t crc = be16_to_cpu(*(uint16_t *)(&tmpbuf[fpos + 2]));
-                        uint16_t calc_crc = crc16_ccitt(tmpbuf, full_length - 2);
-                        if (crc != calc_crc) {
-                            send_ack(NACK_CRC_ERR, cmd << 24 | calc_crc);
-                        } else if (trailer != CMD_TRAILER) {
-                            send_ack(NACK_BAD_TRAIL, cmd << 24);
+                        uint16_t trailer = tmpbuf[fpos + 2] << 8 | tmpbuf[fpos + 3];
+                        if (trailer != CMD_TRAILER) {
+                            canboot_sendf(nack, 8);
                         } else {
-                            // valid command, process
-                            process_command(cmd, (uint32_t *)&tmpbuf[4], length);
+                            uint16_t crc = le16_to_cpu(*(uint16_t *)(&tmpbuf[fpos]));
+                            uint16_t calc_crc = crc16_ccitt(&tmpbuf[2], full_length - 6);
+                            if (crc != calc_crc) {
+                                canboot_sendf(nack, 8);
+                            } else {
+                                // valid command, process
+                                process_command(cmd, (uint32_t *)&tmpbuf[4], length);
+                            }
                         }
                         if (!remaining)
                             break;
