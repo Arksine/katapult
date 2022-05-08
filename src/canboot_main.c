@@ -38,7 +38,7 @@
 #define CMD_TRAILER     0x9903
 
 #define WAIT_BLINK_TIME 1000000
-#define XFER_BLINK_TIME 10000
+#define XFER_BLINK_TIME 20000
 
 #define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
 
@@ -49,8 +49,8 @@ static uint8_t cmd_pos = 0;
 // Page Tracking
 static uint16_t last_page_written = 0;
 static uint8_t page_pending = 0;
-enum { CMD_PENDING, RX_BLOCK, RX_DONE, TX_BLOCK, COMPLETE };
-static uint8_t current_state = CMD_PENDING;
+static uint32_t blink_time = WAIT_BLINK_TIME;
+static uint8_t complete = 0;
 
 static void
 send_ack(uint8_t ack_type, uint32_t arg)
@@ -116,23 +116,23 @@ process_command(uint8_t cmd, uint32_t* data, uint8_t data_len)
             send_ack(ACK_COMMAND, (cmd << 24) | CONFIG_BLOCK_SIZE);
             break;
         case CMD_RX_BLOCK:
-            current_state = RX_BLOCK;
+            blink_time = XFER_BLINK_TIME;
             process_write_block(cmd, data, data_len);
             break;
         case CMD_RX_EOF:
             if (page_pending)
                 write_page(last_page_written + 1);
             flash_complete();
+            blink_time = WAIT_BLINK_TIME;
             send_ack(ACK_COMMAND, (cmd << 24) | (last_page_written + 1));
-            current_state = CMD_PENDING;
             break;
         case CMD_REQ_BLOCK:
-            current_state = TX_BLOCK;
+            blink_time = XFER_BLINK_TIME;
             process_read_block(cmd, data, data_len);
             break;
         case CMD_COMPLETE:
             send_ack(ACK_COMMAND, cmd << 24);
-            current_state = COMPLETE;
+            complete = 1;
             break;
         default:
             // Unknown command or gabage data, NACK it
@@ -208,20 +208,6 @@ canboot_process_rx(uint8_t *data, uint32_t len)
         decode_command();
 }
 
-static inline void
-process_state(void)
-{
-    switch (current_state) {
-        case CMD_PENDING:
-            check_blink_time(WAIT_BLINK_TIME);
-            break;
-        case RX_BLOCK:
-        case TX_BLOCK:
-            check_blink_time(XFER_BLINK_TIME);
-            break;
-    }
-}
-
 static inline uint8_t
 check_application_code(void)
 {
@@ -277,8 +263,8 @@ enter_bootloader(void)
     for (;;) {
         canbus_rx_task();
         canbus_tx_task();
-        process_state();
-        if (current_state == COMPLETE && canbus_tx_clear())
+        check_blink_time(blink_time);
+        if (complete && canbus_tx_clear())
             // wait until we are complete and the ack has returned
             break;
     }
