@@ -37,12 +37,11 @@ flash_complete(void)
 }
 
 void
-flash_write_page(uint16_t page_index, uint16_t *data)
+flash_write_page(uint32_t page_address, uint16_t *data)
 {
     // A page_index of 0 is the first page of the application area
     uint32_t flash_page_size = flash_get_page_size();
-    uint16_t* page_addr = (uint16_t*)(CONFIG_APPLICATION_START +
-        (page_index * flash_page_size));
+    uint16_t* page_addr = (uint16_t*)(page_address);
 
     // make sure flash is unlocked
     if (FLASH->CR & FLASH_CR_LOCK)
@@ -71,11 +70,9 @@ flash_write_page(uint16_t page_index, uint16_t *data)
 }
 
 void
-flash_read_block(uint16_t block_index, uint32_t *buffer)
+flash_read_block(uint32_t block_address, uint32_t *buffer)
 {
-    // A page_index of 0 is the first page of the application area
-    uint32_t* block_addr = (uint32_t*)(CONFIG_APPLICATION_START +
-        (block_index * CONFIG_BLOCK_SIZE));
+    uint32_t* block_addr = (uint32_t*)block_address;
 
     for (uint8_t i = 0; i < CONFIG_BLOCK_SIZE / 4; i++)
         buffer[i] = block_addr[i];

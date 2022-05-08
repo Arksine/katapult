@@ -5,7 +5,7 @@
 
 uint32_t flash_get_page_size(void);
 void flash_complete(void);
-void flash_write_page(uint16_t page_index, uint16_t *data);
-void flash_read_block(uint16_t block_index, uint32_t *buffer);
+void flash_write_page(uint32_t page_address, uint16_t *data);
+void flash_read_block(uint32_t block_address, uint32_t *buffer);
 
 #endif

@@ -15,7 +15,7 @@
 #include "led.h"            // check_blink_time
 #include "byteorder.h"      // cpu_to_le32
 
-
+#define PROTO_VERSION   0x00010000      // Version 1.0.0
 #define PROTO_SIZE      4
 #define CMD_BUF_SIZE    CONFIG_BLOCK_SIZE + 64
 #define MAX_OBUF_SIZE   CONFIG_BLOCK_SIZE + 16
@@ -42,7 +42,7 @@ static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE];
 static uint8_t cmd_buf[CMD_BUF_SIZE];
 static uint8_t cmd_pos = 0;
 // Page Tracking
-static uint16_t last_page_written = 0;
+static uint32_t last_page_address = 0;
 static uint8_t page_pending = 0;
 static uint32_t blink_time = WAIT_BLINK_TIME;
 static uint8_t complete = 0;
@@ -59,22 +59,22 @@ send_ack(uint32_t* data, uint8_t payload_len)
 }
 
 static void
-write_page(uint16_t page)
+write_page(uint32_t page_address)
 {
-    flash_write_page(page, (uint16_t*)page_buffer);
+    flash_write_page(page_address, (uint16_t*)page_buffer);
     memset(page_buffer, 0xFF, sizeof(page_buffer));
-    last_page_written = page;
+    last_page_address = page_address;
     page_pending = 0;
 }
 
 static void
 process_read_block(uint32_t* data, uint8_t data_len) {
-    uint32_t block_index = le32_to_cpu(data[0]);
+    uint32_t block_address = le32_to_cpu(data[0]);
     uint8_t word_len = CONFIG_BLOCK_SIZE / 4 + 2;
     uint32_t out[MAX_OBUF_SIZE];
     out[1] = cpu_to_le32(CMD_REQ_BLOCK);
-    out[2] = cpu_to_le32(block_index);
-    flash_read_block(block_index, &out[3]);
+    out[2] = cpu_to_le32(block_address);
+    flash_read_block(block_address, &out[3]);
     send_ack(out, word_len);
 }
 
@@ -84,31 +84,32 @@ process_write_block(uint32_t* data, uint8_t data_len) {
         canboot_sendf(nack, 8);
         return;
     }
-    uint32_t block_index = le32_to_cpu(data[0]);
-    uint32_t byte_addr = block_index * CONFIG_BLOCK_SIZE;
+    uint32_t block_address = le32_to_cpu(data[0]);
     uint32_t flash_page_size = flash_get_page_size();
-    uint32_t page_pos = byte_addr % flash_page_size;
-    uint16_t page_index = byte_addr / flash_page_size;
+    uint32_t page_pos = block_address % flash_page_size;
     memcpy(&page_buffer[page_pos], (uint8_t *)&data[1], CONFIG_BLOCK_SIZE);
     page_pending = 1;
-    page_pos += CONFIG_BLOCK_SIZE;
-    if (page_pos == flash_page_size)
-        write_page(page_index);
+    if (page_pos + CONFIG_BLOCK_SIZE == flash_page_size)
+        write_page(block_address - page_pos);
     uint32_t out[4];
     out[1] = cpu_to_le32(CMD_RX_BLOCK);
-    out[2] = cpu_to_le32(block_index);
+    out[2] = cpu_to_le32(block_address);
     send_ack(out, 2);
 }
 
 static void
 process_eof(void)
 {
-    if (page_pending)
-        write_page(last_page_written + 1);
+    uint32_t flash_page_size = flash_get_page_size();
+    if (page_pending) {
+        write_page(last_page_address + flash_page_size);
+    }
     flash_complete();
     uint32_t out[4];
     out[1] = cpu_to_le32(CMD_RX_EOF);
-    out[2] = cpu_to_le32(last_page_written + 1);
+    out[2] = cpu_to_le32(
+        ((last_page_address - CONFIG_APPLICATION_START)
+        / flash_page_size) + 1);
     send_ack(out, 2);
 }
 
@@ -123,11 +124,13 @@ process_complete(void)
 
 static void
 process_connnect(void)
-{   uint32_t out[4];
+{
+    uint32_t out[6];
     out[1] = cpu_to_le32(CMD_CONNECT);
-    out[2] = cpu_to_le32(CONFIG_BLOCK_SIZE);
-    send_ack(out, 2);
-
+    out[2] = cpu_to_le32(PROTO_VERSION);
+    out[3] = cpu_to_le32(CONFIG_APPLICATION_START);
+    out[4] = cpu_to_le32(CONFIG_BLOCK_SIZE);
+    send_ack(out, 4);
 }
 
 static inline void
@@ -233,7 +236,7 @@ check_application_code(void)
 {
     // Read the first block of memory, if it
     // is all 0xFF then no application has been flashed
-    flash_read_block(0, (uint32_t*)page_buffer);
+    flash_read_block(CONFIG_APPLICATION_START, (uint32_t*)page_buffer);
     for (uint8_t i = 0; i < CONFIG_BLOCK_SIZE; i++) {
         if (page_buffer[i] != 0xFF)
             return 1;
