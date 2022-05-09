@@ -140,6 +140,22 @@ in the following format:
 <4 byte orig_command>
 ```
 
+#### Get CANbus id: `0x16`
+
+Return the CANbus UUID (for verification of correct communication
+channel).
+
+```
+<0x01><0x88><0x16><0x00><CRC><0x99><0x03>
+```
+
+Responds with [acknowledged](#acknowledged-0xa0) containing a 12 byte
+payload in the following format:
+
+```
+<4 byte orig_command><6 byte UUID><0x00><0x00>
+```
+
 ### Responses
 
 #### Acknowledged: `0xa0`
