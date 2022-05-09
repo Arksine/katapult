@@ -17,8 +17,8 @@
 
 #define PROTO_VERSION   0x00010000      // Version 1.0.0
 #define PROTO_SIZE      4
-#define CMD_BUF_SIZE    CONFIG_BLOCK_SIZE + 64
-#define MAX_OBUF_SIZE   CONFIG_BLOCK_SIZE + 16
+#define CMD_BUF_SIZE    (CONFIG_BLOCK_SIZE + 64)
+#define MAX_OBUF_SIZE   (CONFIG_BLOCK_SIZE + 16)
 #define CMD_CONNECT     0x11
 #define CMD_RX_BLOCK    0x12
 #define CMD_RX_EOF      0x13
@@ -71,7 +71,7 @@ static void
 process_read_block(uint32_t* data, uint8_t data_len) {
     uint32_t block_address = le32_to_cpu(data[0]);
     uint8_t word_len = CONFIG_BLOCK_SIZE / 4 + 2;
-    uint32_t out[MAX_OBUF_SIZE];
+    uint32_t out[MAX_OBUF_SIZE / 4];
     out[1] = cpu_to_le32(CMD_REQ_BLOCK);
     out[2] = cpu_to_le32(block_address);
     flash_read_block(block_address, &out[3]);
