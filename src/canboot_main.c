@@ -86,6 +86,10 @@ process_write_block(uint32_t* data, uint8_t data_len) {
         return;
     }
     uint32_t block_address = le32_to_cpu(data[0]);
+    if (block_address < CONFIG_APPLICATION_START) {
+        canboot_sendf(cerr, 8);
+        return;
+    }
     uint32_t flash_page_size = flash_get_page_size();
     uint32_t page_pos = block_address % flash_page_size;
     memcpy(&page_buffer[page_pos], (uint8_t *)&data[1], CONFIG_BLOCK_SIZE);
