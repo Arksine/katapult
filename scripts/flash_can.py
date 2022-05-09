@@ -86,15 +86,21 @@ class CanFlasher:
     async def connect_btl(self):
         output_line("Attempting to connect to bootloader")
         ret = await self.send_command('CONNECT')
-        ver_bytes, start_addr, self.block_size = struct.unpack("<4sII", ret)
+        pinfo = ret[:12]
+        mcu_type = ret[12:]
+        ver_bytes, start_addr, self.block_size = struct.unpack("<4sII", pinfo)
         self.app_start_addr = start_addr
         proto_version = ".".join([str(v) for v in reversed(ver_bytes[:3])])
         if self.block_size not in [64, 128, 256, 512]:
             raise FlashCanError("Invalid Block Size: %d" % (self.block_size,))
+        while mcu_type and mcu_type[-1] == 0x00:
+            mcu_type = mcu_type[:-1]
+        mcu_type = mcu_type.decode()
         output_line(
             f"CanBoot Connected\nProtocol Version: {proto_version}\n"
             f"Block Size: {self.block_size} bytes\n"
-            f"Application Start: 0x{self.app_start_addr:4X}"
+            f"Application Start: 0x{self.app_start_addr:4X}\n"
+            f"MCU type: {mcu_type}"
         )
 
     async def send_command(
