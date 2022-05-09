@@ -66,7 +66,7 @@ The `block_address` refers to a address in flash memory where the block write
 should begin.  The first `block_address` must be the `start_address` received
 in the [connect](#connect-0x11) command.
 
-The `block_data` is the data contained with in the block.  If the final block
+The `block_data` is the data contained within the block.  If the final block
 is less than `block_size` in length it should be padded with `0xFF` to fill
 the remainder.
 
