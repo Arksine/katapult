@@ -37,6 +37,7 @@
 #define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
 
 static uint8_t nack[8] = {0x01, 0x88, 0xF1, 0x00, 0x68, 0x95, 0x99, 0x03};
+static uint8_t cerr[8] = {0x01, 0x88, 0xF2, 0x00, 0x00, 0xbf, 0x99, 0x03};
 static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE];
 // Input Tracking
 static uint8_t cmd_buf[CMD_BUF_SIZE];
@@ -81,7 +82,7 @@ process_read_block(uint32_t* data, uint8_t data_len) {
 static void
 process_write_block(uint32_t* data, uint8_t data_len) {
     if (data_len != (CONFIG_BLOCK_SIZE / 4) + 1) {
-        canboot_sendf(nack, 8);
+        canboot_sendf(cerr, 8);
         return;
     }
     uint32_t block_address = le32_to_cpu(data[0]);
@@ -157,7 +158,7 @@ process_command(uint8_t cmd, uint32_t* data, uint8_t data_len)
             break;
         default:
             // Unknown command or gabage data, NACK it
-            canboot_sendf(nack, 8);
+            canboot_sendf(cerr, 8);
     }
 }
 
