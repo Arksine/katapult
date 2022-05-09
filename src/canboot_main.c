@@ -48,7 +48,7 @@ static uint8_t page_pending = 0;
 static uint32_t blink_time = WAIT_BLINK_TIME;
 static uint8_t complete = 0;
 
-static void
+void
 send_ack(uint32_t* data, uint8_t payload_len)
 {
     // First four bytes: 2 byte header, ack_type, data length
@@ -162,6 +162,9 @@ process_command(uint8_t cmd, uint32_t* data, uint8_t data_len)
             break;
         case CMD_COMPLETE:
             process_complete();
+            break;
+        case CMD_GET_CANBUS_ID:
+            command_get_canbus_id();
             break;
         default:
             // Unknown command or gabage data, NACK it

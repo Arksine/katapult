@@ -46,7 +46,8 @@ BOOTLOADER_CMDS = {
     'SEND_BLOCK': 0x12,
     'SEND_EOF': 0x13,
     'REQUEST_BLOCK': 0x14,
-    'COMPLETE': 0x15
+    'COMPLETE': 0x15,
+    'GET_CANBUS_ID': 0x16,
 }
 
 ACK_SUCCESS = 0xa0
@@ -102,6 +103,13 @@ class CanFlasher:
             f"Application Start: 0x{self.app_start_addr:4X}\n"
             f"MCU type: {mcu_type}"
         )
+
+    async def verify_canbus_uuid(self, uuid):
+        output_line("Verifying canbus connection")
+        ret = await self.send_command('GET_CANBUS_ID')
+        mcu_uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(ret[:6])])
+        if mcu_uuid != uuid:
+            raise FlashCanError("UUID mismatch (%s vs %s)" % (uuid, mcu_uuid))
 
     async def send_command(
         self,
@@ -457,6 +465,7 @@ class CanSocket:
         await asyncio.sleep(.5)
         try:
             await flasher.connect_btl()
+            await flasher.verify_canbus_uuid(uuid)
             await flasher.send_file()
             await flasher.verify_file()
         finally:

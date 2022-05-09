@@ -7,6 +7,7 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include <string.h> // memcpy
+#include "byteorder.h" // cpu_to_le32
 #include "canbus.h" // canbus_set_uuid
 #include "canboot_main.h"
 
@@ -224,6 +225,15 @@ canbus_rx_task(void)
 /****************************************************************
  * Setup and shutdown
  ****************************************************************/
+
+void
+command_get_canbus_id(void)
+{
+    uint32_t out[5] = {};
+    out[1] = cpu_to_le32(CMD_GET_CANBUS_ID);
+    memcpy(&out[2], canbus_uuid, 6);
+    send_ack(out, 3);
+}
 
 void
 canbus_set_uuid(void *uuid)
