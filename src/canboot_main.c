@@ -126,12 +126,15 @@ process_complete(void)
 static void
 process_connnect(void)
 {
-    uint32_t out[6];
+    uint32_t mcuwords = DIV_ROUND_UP(strlen(CONFIG_MCU), 4);
+    uint32_t out[6 + mcuwords];
+    memset(out, 0, (6 + mcuwords) * 4);
     out[1] = cpu_to_le32(CMD_CONNECT);
     out[2] = cpu_to_le32(PROTO_VERSION);
     out[3] = cpu_to_le32(CONFIG_APPLICATION_START);
     out[4] = cpu_to_le32(CONFIG_BLOCK_SIZE);
-    send_ack(out, 4);
+    memcpy(&out[5], CONFIG_MCU, strlen(CONFIG_MCU));
+    send_ack(out, 4 + mcuwords);
 }
 
 static inline void

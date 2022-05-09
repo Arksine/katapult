@@ -38,7 +38,7 @@ Responds with [acknowledged](#acknowledged-0xa0) containing a 16 byte payload
 in the following format:
 
 ```
-<4 byte orig_command><4 byte protocol_version><4 byte start_address><4 byte block_size>
+<4 byte orig_command><4 byte protocol_version><4 byte start_address><4 byte block_size><n byte mcu_type_string>
 ```
 
 - `orig_command` - must be `0x11`
@@ -50,6 +50,7 @@ in the following format:
   address.
 - `block_size` - the size of a block (in bytes) expected in the `send block` and
   `request block` commands.  Typically this should be 64 bytes.
+- `mcu_type_string` - The type of micro-controller (eg, "stm32f103xe").
 
 
 #### Send Block: `0x12`
