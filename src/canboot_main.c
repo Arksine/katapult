@@ -13,12 +13,8 @@
 #include "canboot_main.h"   // canboot_main
 #include "command.h"        // command_respond_ack
 #include "ctr.h"            // DECL_CTR
-#include "led.h"            // check_blink_time
 #include "byteorder.h"      // cpu_to_le32
 #include "sched.h"          // sched_run_init
-
-#define WAIT_BLINK_TIME 1000000
-#define XFER_BLINK_TIME 20000
 
 #define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
 
@@ -26,8 +22,14 @@ static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE];
 // Page Tracking
 static uint32_t last_page_address = 0;
 static uint8_t page_pending = 0;
-static uint32_t blink_time = WAIT_BLINK_TIME;
+static uint8_t is_in_transfer;
 static uint8_t complete = 0;
+
+int
+flashcmd_is_in_transfer(void)
+{
+    return is_in_transfer;
+}
 
 static void
 write_page(uint32_t page_address)
@@ -41,7 +43,7 @@ write_page(uint32_t page_address)
 void
 command_read_block(uint32_t *data)
 {
-    blink_time = XFER_BLINK_TIME;
+    is_in_transfer = 1;
     uint32_t block_address = le32_to_cpu(data[1]);
     uint32_t out[CONFIG_BLOCK_SIZE / 4 + 2 + 2];
     out[2] = cpu_to_le32(block_address);
@@ -52,7 +54,7 @@ command_read_block(uint32_t *data)
 void
 command_write_block(uint32_t *data)
 {
-    blink_time = XFER_BLINK_TIME;
+    is_in_transfer = 1;
     if (command_get_arg_count(data) != (CONFIG_BLOCK_SIZE / 4) + 1) {
         command_respond_command_error();
         return;
@@ -76,7 +78,7 @@ command_write_block(uint32_t *data)
 void
 command_eof(uint32_t *data)
 {
-    blink_time = WAIT_BLINK_TIME;
+    is_in_transfer = 0;
     uint32_t flash_page_size = flash_get_page_size();
     if (page_pending) {
         write_page(last_page_address + flash_page_size);
@@ -163,7 +165,6 @@ enter_bootloader(void)
 
     for (;;) {
         sched_run_tasks();
-        check_blink_time(blink_time);
         if (complete && canbus_tx_clear())
             // wait until we are complete and the ack has returned
             break;
