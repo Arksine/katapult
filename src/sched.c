@@ -5,6 +5,8 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include "board/io.h" // readb
+#include "board/misc.h" // jump_to_application
+#include "bootentry.h" // bootentry_check
 #include "sched.h" // sched_check_periodic
 
 // Note that a task is ready to run
@@ -24,18 +26,20 @@ sched_check_wake(struct task_wake *w)
     return 1;
 }
 
+// Init followed by main task dispatch loop
 void
-sched_run_init(void)
+sched_main(void)
 {
+    if (!bootentry_check())
+        jump_to_application();
+
     // Run all init functions marked with DECL_INIT()
     extern void ctr_run_initfuncs(void);
     ctr_run_initfuncs();
-}
 
-void
-sched_run_tasks(void)
-{
-    // Run all task functions marked with DECL_TASK()
-    extern void ctr_run_taskfuncs(void);
-    ctr_run_taskfuncs();
+    for (;;) {
+        // Run all task functions marked with DECL_TASK()
+        extern void ctr_run_taskfuncs(void);
+        ctr_run_taskfuncs();
+    }
 }

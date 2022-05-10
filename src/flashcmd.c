@@ -7,9 +7,55 @@
 #include <string.h> // memmove
 #include "autoconf.h" // CONFIG_BLOCK_SIZE
 #include "board/flash.h" // flash_write_page
+#include "board/misc.h" // jump_to_application
 #include "byteorder.h" // cpu_to_le32
 #include "command.h" // command_respond_ack
 #include "flashcmd.h" // flashcmd_is_in_transfer
+#include "sched.h" // DECL_TASK
+
+// Handler for "connect" commands
+void
+command_connect(uint32_t *data)
+{
+    uint32_t mcuwords = DIV_ROUND_UP(strlen(CONFIG_MCU), 4);
+    uint32_t out[6 + mcuwords];
+    memset(out, 0, (6 + mcuwords) * 4);
+    out[2] = cpu_to_le32(PROTO_VERSION);
+    out[3] = cpu_to_le32(CONFIG_APPLICATION_START);
+    out[4] = cpu_to_le32(CONFIG_BLOCK_SIZE);
+    memcpy(&out[5], CONFIG_MCU, strlen(CONFIG_MCU));
+    command_respond_ack(CMD_CONNECT, out, ARRAY_SIZE(out));
+}
+
+
+/****************************************************************
+ * Command "complete" handling
+ ****************************************************************/
+
+static uint8_t complete;
+static uint32_t complete_endtime;
+
+void
+command_complete(uint32_t *data)
+{
+    uint32_t out[3];
+    command_respond_ack(CMD_COMPLETE, out, ARRAY_SIZE(out));
+    complete = 1;
+    complete_endtime = timer_read_time() + timer_from_us(100000);
+}
+
+void
+complete_task(void)
+{
+    if (complete && timer_is_before(complete_endtime, timer_read_time()))
+        jump_to_application();
+}
+DECL_TASK(complete_task);
+
+
+/****************************************************************
+ * Flash commands
+ ****************************************************************/
 
 static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE];
 // Page Tracking

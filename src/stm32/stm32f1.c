@@ -8,8 +8,7 @@
 #include "board/armcm_boot.h" // VectorTable
 #include "board/irq.h" // irq_disable
 #include "internal.h" // enable_pclock
-#include "board/misc.h"     // jump_to_application
-#include "canboot_main.h" // canboot_main
+#include "sched.h" // sched_main
 
 #define FREQ_PERIPH (CONFIG_CLOCK_FREQ / 2)
 
@@ -235,5 +234,5 @@ armcm_main(void)
         stm32f1_alternative_remap(AFIO_MAPR_SWJ_CFG_Msk,
                                   AFIO_MAPR_SWJ_CFG_JTAGDISABLE);
 
-    canboot_main();
+    sched_main();
 }
