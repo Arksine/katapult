@@ -9,7 +9,7 @@
 #include "gpio.h" // gpio_out_setup
 #include "internal.h" // gpio_peripheral
 #include "compiler.h" // ARRAY_SIZE
-#include "ctr.h" // DECL_ENUMERATION_RANGE
+#include "command.h" // DECL_ENUMERATION_RANGE
 
 DECL_ENUMERATION_RANGE("pin", "PA0", GPIO('A', 0), 16);
 DECL_ENUMERATION_RANGE("pin", "PB0", GPIO('B', 0), 16);

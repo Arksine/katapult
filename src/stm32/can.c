@@ -9,6 +9,7 @@
 #include <string.h> // memcpy
 #include "autoconf.h" // CONFIG_MACH_STM32F1
 #include "board/irq.h" // irq_disable
+#include "command.h" // DECL_CONSTANT_STR
 #include "fasthash.h" // fasthash64
 #include "generic/armcm_boot.h" // armcm_enable_irq
 #include "generic/canbus.h" // canbus_notify_tx

@@ -10,6 +10,7 @@
 #include "byteorder.h" // cpu_to_le32
 #include "canbus.h" // canbus_set_uuid
 #include "canboot_main.h"
+#include "command.h" // DECL_TASK
 #include "sched.h" // sched_wake_task
 
 static uint32_t canbus_assigned_id;
