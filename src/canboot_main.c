@@ -7,7 +7,6 @@
 #include <string.h>         // strlen
 #include "autoconf.h"       // CONFIG_*
 #include "board/misc.h"     // udelay
-#include "board/canbus.h"   // canbus_send
 #include "board/flash.h"    // flash_read_block
 #include "board/gpio.h"     // gpio_in_setup
 #include "canboot_main.h"   // canboot_main
@@ -18,7 +17,8 @@
 
 #define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
 
-static uint8_t complete = 0;
+static uint8_t complete;
+static uint32_t complete_endtime;
 
 void
 command_complete(uint32_t *data)
@@ -26,7 +26,16 @@ command_complete(uint32_t *data)
     uint32_t out[3];
     command_respond_ack(CMD_COMPLETE, out, ARRAY_SIZE(out));
     complete = 1;
+    complete_endtime = timer_read_time() + timer_from_us(100000);
 }
+
+void
+complete_task(void)
+{
+    if (complete && timer_is_before(complete_endtime, timer_read_time()))
+        jump_to_application();
+}
+DECL_TASK(complete_task);
 
 void
 command_connect(uint32_t *data)
@@ -93,16 +102,8 @@ enter_bootloader(void)
 {
     sched_run_init();
 
-    for (;;) {
+    for (;;)
         sched_run_tasks();
-        if (complete && canbus_tx_clear())
-            // wait until we are complete and the ack has returned
-            break;
-    }
-
-    // Flash Complete, system reset
-    udelay(100000);
-    canbus_reboot();
 }
 
 // Main loop of program
