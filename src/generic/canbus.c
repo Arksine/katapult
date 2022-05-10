@@ -7,9 +7,7 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include <string.h> // memcpy
-#include "byteorder.h" // cpu_to_le32
 #include "canbus.h" // canbus_set_uuid
-#include "canboot_main.h"
 #include "command.h" // DECL_TASK
 #include "sched.h" // sched_wake_task
 
@@ -62,7 +60,7 @@ DECL_TASK(canbus_tx_task);
 
 // Encode and transmit a "response" message
 void
-canboot_sendf(uint8_t* data, uint16_t size)
+console_process_tx(uint8_t *data, uint32_t size)
 {
     // Verify space for message
     uint32_t tpos = transmit_pos, tmax = transmit_max;
@@ -198,7 +196,7 @@ canbus_process_data(uint32_t id, uint32_t len, uint8_t *data)
 {
     if (!id || id != canbus_assigned_id)
         return;
-    canboot_process_rx(data, len);
+    console_process_rx(data, len);
     canbus_notify_rx();
 }
 
@@ -230,12 +228,11 @@ DECL_TASK(canbus_rx_task);
  ****************************************************************/
 
 void
-command_get_canbus_id(void)
+command_get_canbus_id(uint32_t *data)
 {
     uint32_t out[5] = {};
-    out[1] = cpu_to_le32(CMD_GET_CANBUS_ID);
     memcpy(&out[2], canbus_uuid, 6);
-    send_ack(out, 3);
+    command_respond_ack(CMD_GET_CANBUS_ID, out, ARRAY_SIZE(out));
 }
 
 void
