@@ -10,6 +10,7 @@
 #include "byteorder.h" // cpu_to_le32
 #include "canbus.h" // canbus_set_uuid
 #include "canboot_main.h"
+#include "sched.h" // sched_wake_task
 
 static uint32_t canbus_assigned_id;
 static uint8_t canbus_uuid[CANBUS_UUID_LEN];
@@ -19,7 +20,7 @@ static uint8_t canbus_uuid[CANBUS_UUID_LEN];
  * Data transmission over CAN
  ****************************************************************/
 
-static volatile uint8_t canbus_tx_wake;
+static struct task_wake canbus_tx_wake;
 static uint8_t transmit_buf[96], transmit_pos, transmit_max;
 
 uint8_t
@@ -31,15 +32,14 @@ canbus_tx_clear(void)
 void
 canbus_notify_tx(void)
 {
-    canbus_tx_wake = 1;
+    sched_wake_task(&canbus_tx_wake);
 }
 
 void
 canbus_tx_task(void)
 {
-    if (!canbus_tx_wake)
+    if (!sched_check_wake(&canbus_tx_wake))
         return;
-    canbus_tx_wake = 0;
     uint32_t id = canbus_assigned_id;
     if (!id) {
         transmit_pos = transmit_max = 0;
@@ -57,6 +57,7 @@ canbus_tx_task(void)
     }
     transmit_pos = tpos;
 }
+DECL_TASK(canbus_tx_task);
 
 // Encode and transmit a "response" message
 void
@@ -93,8 +94,8 @@ canboot_sendf(uint8_t* data, uint16_t size)
 
 // Available commands and responses
 #define CANBUS_CMD_QUERY_UNASSIGNED 0x00
-#define CANBUS_CMD_SET_NODEID_CANBOOT 0x11
-#define CANBUS_CMD_CLEAR_NODE_ID_CANBOOT 0x12
+#define CANBUS_CMD_SET_CANBOOT_NODEID 0x11
+#define CANBUS_CMD_CLEAR_CANBOOT_NODEID 0x12
 #define CANBUS_RESP_NEED_NODEID 0x20
 
 // Helper to verify a UUID in a command matches this chip's UUID
@@ -118,7 +119,7 @@ can_process_query_unassigned(uint32_t id, uint32_t len, uint8_t *data)
     uint8_t send[8];
     send[0] = CANBUS_RESP_NEED_NODEID;
     memcpy(&send[1], canbus_uuid, sizeof(canbus_uuid));
-    send[7] = CANBUS_CMD_SET_NODEID_CANBOOT;
+    send[7] = CANBUS_CMD_SET_CANBOOT_NODEID;
     // Send with retry
     for (;;) {
         int ret = canbus_send(CANBUS_ID_ADMIN_RESP, 8, send);
@@ -128,7 +129,7 @@ can_process_query_unassigned(uint32_t id, uint32_t len, uint8_t *data)
 }
 
 static void
-can_process_clear_node_id(void)
+can_process_clear_canboot_nodeid(void)
 {
     canbus_assigned_id = 0;
     canbus_set_filter(canbus_assigned_id);
@@ -143,7 +144,7 @@ can_id_conflict(void)
 }
 
 static void
-can_process_set_nodeid(uint32_t id, uint32_t len, uint8_t *data)
+can_process_set_canboot_nodeid(uint32_t id, uint32_t len, uint8_t *data)
 {
     if (len < 8)
         return;
@@ -168,11 +169,11 @@ can_process(uint32_t id, uint32_t len, uint8_t *data)
     case CANBUS_CMD_QUERY_UNASSIGNED:
         can_process_query_unassigned(id, len, data);
         break;
-    case CANBUS_CMD_SET_NODEID_CANBOOT:
-        can_process_set_nodeid(id, len, data);
+    case CANBUS_CMD_SET_CANBOOT_NODEID:
+        can_process_set_canboot_nodeid(id, len, data);
         break;
-    case CANBUS_CMD_CLEAR_NODE_ID_CANBOOT:
-        can_process_clear_node_id();
+    case CANBUS_CMD_CLEAR_CANBOOT_NODEID:
+        can_process_clear_canboot_nodeid();
         break;
     }
 }
@@ -182,7 +183,13 @@ can_process(uint32_t id, uint32_t len, uint8_t *data)
  * CAN packet reading
  ****************************************************************/
 
-static volatile uint8_t canbus_rx_wake;
+static struct task_wake canbus_rx_wake;
+
+void
+canbus_notify_rx(void)
+{
+    sched_wake_task(&canbus_rx_wake);
+}
 
 // Handle incoming data (called from IRQ handler)
 void
@@ -194,19 +201,12 @@ canbus_process_data(uint32_t id, uint32_t len, uint8_t *data)
     canbus_notify_rx();
 }
 
-void
-canbus_notify_rx(void)
-{
-    canbus_rx_wake = 1;
-}
-
 // Task to process incoming commands and admin messages
 void
 canbus_rx_task(void)
 {
-    if (!canbus_rx_wake)
+    if (!sched_check_wake(&canbus_rx_wake))
         return;
-    canbus_rx_wake = 0;
 
     // Read any pending CAN packets
     for (;;) {
@@ -221,6 +221,8 @@ canbus_rx_task(void)
             can_process(id, ret, data);
     }
 }
+DECL_TASK(canbus_rx_task);
+
 
 /****************************************************************
  * Setup and shutdown
@@ -248,3 +250,4 @@ canbus_shutdown(void)
     canbus_notify_tx();
     canbus_notify_rx();
 }
+DECL_SHUTDOWN(canbus_shutdown);

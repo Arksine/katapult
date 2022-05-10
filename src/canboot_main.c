@@ -14,6 +14,7 @@
 #include "ctr.h"            // DECL_CTR
 #include "led.h"            // check_blink_time
 #include "byteorder.h"      // cpu_to_le32
+#include "sched.h"          // sched_run_init
 
 #define PROTO_VERSION   0x00010000      // Version 1.0.0
 #define PROTO_SIZE      4
@@ -291,12 +292,10 @@ check_double_reset(void)
 static void
 enter_bootloader(void)
 {
-    can_init();
-    led_init();
+    sched_run_init();
 
     for (;;) {
-        canbus_rx_task();
-        canbus_tx_task();
+        sched_run_tasks();
         check_blink_time(blink_time);
         if (complete && canbus_tx_clear())
             // wait until we are complete and the ack has returned

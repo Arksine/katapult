@@ -13,7 +13,7 @@
 #include "generic/armcm_boot.h" // armcm_enable_irq
 #include "generic/canbus.h" // canbus_notify_tx
 #include "internal.h" // enable_pclock
-#include "ctr.h"      // DECL_CONSTANT_STR
+#include "sched.h" // DECL_INIT
 
 #if CONFIG_STM32_CANBUS_PA11_PA12 || CONFIG_STM32_CANBUS_PA11_PA12_REMAP
  DECL_CONSTANT_STR("RESERVE_PINS_CAN", "PA11,PA12");
@@ -317,3 +317,4 @@ can_init(void)
     uint64_t hash = fasthash64((uint8_t*)UID_BASE, 12, 0xA16231A7);
     canbus_set_uuid(&hash);
 }
+DECL_INIT(can_init);
