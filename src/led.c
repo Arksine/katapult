@@ -7,8 +7,8 @@
 #include "autoconf.h" // CONFIG_ENABLE_LED
 #include "board/gpio.h" // gpio_out_setup
 #include "board/misc.h" // timer_read_time
-#include "canboot_main.h" // flashcmd_is_in_transfer
 #include "ctr.h" // DECL_CTR
+#include "flashcmd.h" // flashcmd_is_in_transfer
 #include "sched.h" // DECL_INIT
 
 #define WAIT_BLINK_TIME 1000000
