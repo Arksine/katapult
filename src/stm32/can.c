@@ -269,12 +269,6 @@ compute_btr(uint32_t pclock, uint32_t bitrate)
 }
 
 void
-canbus_reboot(void)
-{
-    NVIC_SystemReset();
-}
-
-void
 can_init(void)
 {
     enable_pclock((uint32_t)SOC_CAN);

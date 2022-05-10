@@ -22,12 +22,6 @@ static uint8_t canbus_uuid[CANBUS_UUID_LEN];
 static struct task_wake canbus_tx_wake;
 static uint8_t transmit_buf[96], transmit_pos, transmit_max;
 
-uint8_t
-canbus_tx_clear(void)
-{
-    return transmit_pos >= transmit_max;
-}
-
 void
 canbus_notify_tx(void)
 {
