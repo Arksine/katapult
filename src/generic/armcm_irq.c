@@ -6,6 +6,7 @@
 
 #include "board/internal.h" // __CORTEX_M
 #include "irq.h" // irqstatus_t
+#include "sched.h" // DECL_SHUTDOWN
 
 void
 irq_disable(void)
@@ -71,3 +72,4 @@ clear_active_irq(void)
         "1:\n"
         : "=&r"(temp) : "r"(psr), "r"(0xfffffff9) : "r12", "cc");
 }
+DECL_SHUTDOWN(clear_active_irq);
