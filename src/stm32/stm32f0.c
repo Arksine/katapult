@@ -7,9 +7,9 @@
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // armcm_main
 #include "board/irq.h" // irq_disable
-#include "board/misc.h" // jump_to_application
+#include "board/misc.h" // timer_init
 #include "internal.h" // enable_pclock
-#include "canboot_main.h" // sched_main
+#include "sched.h" // sched_main
 
 #define FREQ_PERIPH 48000000
 
@@ -113,5 +113,5 @@ armcm_main(void)
 #endif
 
     timer_init();
-    canboot_main();
+    sched_main();
 }

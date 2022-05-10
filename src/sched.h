@@ -19,8 +19,7 @@ struct task_wake {
 // sched.c
 void sched_wake_task(struct task_wake *w);
 uint8_t sched_check_wake(struct task_wake *w);
-void sched_run_init(void);
-void sched_run_tasks(void);
+void sched_main(void);
 
 // Compiler glue for DECL_X macros above.
 #define _DECL_CALLLIST(NAME, FUNC)                                      \
