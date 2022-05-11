@@ -82,8 +82,11 @@ command_dispatch(uint8_t *buf, uint_fast8_t msglen)
             command_complete(data);
             break;
         case CMD_GET_CANBUS_ID:
-            command_get_canbus_id(data);
-            break;
+            if (CONFIG_CANSERIAL) {
+                command_get_canbus_id(data);
+                break;
+            }
+            // NO BREAK
         default:
             // Unknown command or gabage data, NACK it
             command_respond_command_error();

@@ -9,6 +9,12 @@
 #include "bootentry.h" // bootentry_check
 #include "sched.h" // sched_check_periodic
 
+// Wrapper for Klipper compatibility
+void
+sched_wake_tasks(void)
+{
+}
+
 // Note that a task is ready to run
 void
 sched_wake_task(struct task_wake *w)
