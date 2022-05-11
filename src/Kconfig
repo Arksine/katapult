@@ -2,19 +2,47 @@
 
 mainmenu "CanBoot Configuration"
 
+config LOW_LEVEL_OPTIONS
+    bool
+    default y
+
 config MACH_STM32
     bool
     default y
 
 source "src/stm32/Kconfig"
 
-config CANSERIAL
-    bool
-    default y
+# Generic configuration options for serial ports
+config SERIAL_BAUD
+    depends on SERIAL
+    int "Baud rate for serial port" if LOW_LEVEL_OPTIONS
+    default 250000
+    help
+        Specify the baud rate of the serial port. This should be set
+        to 250000. Read the FAQ before changing this value.
 
-config CANBUS_FREQUENCY
-    int "CAN bus speed"
-    default 500000
+# Generic configuration options for USB
+config USB_VENDOR_ID
+    default 0x1d50
+config USB_DEVICE_ID
+    default 0x614e
+config USB_SERIAL_NUMBER_CHIPID
+    depends on HAVE_CHIPID
+    default y
+config USB_SERIAL_NUMBER
+    default "12345"
+
+menu "USB ids"
+    depends on USBSERIAL && LOW_LEVEL_OPTIONS
+config USB_VENDOR_ID
+    hex "USB vendor ID"
+config USB_DEVICE_ID
+    hex "USB device ID"
+config USB_SERIAL_NUMBER_CHIPID
+    bool "USB serial number from CHIPID" if HAVE_CHIPID
+config USB_SERIAL_NUMBER
+    string "USB serial number" if !USB_SERIAL_NUMBER_CHIPID
+endmenu
 
 config ENABLE_DOUBLE_RESET
     bool "Support bootloader entry on rapid double click of reset button"
@@ -35,3 +63,9 @@ config ENABLE_LED
 config STATUS_LED_PIN
     string "Status LED GPIO Pin"
     depends on ENABLE_LED
+
+# The HAVE_x options allow boards to disable support for some commands
+# if the hardware does not support the feature.
+config HAVE_CHIPID
+    bool
+    default n

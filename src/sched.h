@@ -17,6 +17,7 @@ struct task_wake {
 };
 
 // sched.c
+void sched_wake_tasks(void);
 void sched_wake_task(struct task_wake *w);
 uint8_t sched_check_wake(struct task_wake *w);
 void sched_main(void);

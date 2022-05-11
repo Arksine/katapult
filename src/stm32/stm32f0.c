@@ -8,8 +8,14 @@
 #include "board/armcm_boot.h" // armcm_main
 #include "board/irq.h" // irq_disable
 #include "board/misc.h" // timer_init
+#include "command.h" // DECL_CONSTANT_STR
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
+
+
+/****************************************************************
+ * Clock setup
+ ****************************************************************/
 
 #define FREQ_PERIPH 48000000
 
@@ -45,6 +51,10 @@ gpio_clock_enable(GPIO_TypeDef *regs)
     RCC->AHBENR;
 }
 
+#if !CONFIG_STM32_CLOCK_REF_INTERNAL
+DECL_CONSTANT_STR("RESERVE_PINS_crystal", "PF0,PF1");
+#endif
+
 // Configure and enable the PLL as clock source
 static void
 pll_setup(void)
@@ -75,8 +85,37 @@ pll_setup(void)
 
     // Setup CFGR3 register
     uint32_t cfgr3 = RCC_CFGR3_I2C1SW;
-
+#if CONFIG_USBSERIAL
+        // Select PLL as source for USB clock
+        cfgr3 |= RCC_CFGR3_USBSW;
+#endif
     RCC->CFGR3 = cfgr3;
+}
+
+// Configure and enable internal 48Mhz clock on the stm32f042
+static void
+hsi48_setup(void)
+{
+#if CONFIG_MACH_STM32F0x2
+    // Enable HSI48
+    RCC->CR2 |= RCC_CR2_HSI48ON;
+    while (!(RCC->CR2 & RCC_CR2_HSI48RDY))
+        ;
+
+    // Switch system clock to HSI48
+    RCC->CFGR = RCC_CFGR_SW_HSI48;
+    while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != RCC_CFGR_SWS_HSI48)
+        ;
+
+    // Enable USB clock recovery
+    if (CONFIG_USBSERIAL) {
+        enable_pclock(CRS_BASE);
+        CRS->CR |= CRS_CR_AUTOTRIMEN | CRS_CR_CEN;
+    }
+
+    // Setup I2C1 clock
+    RCC->CFGR3 = RCC_CFGR3_I2C1SW;
+#endif
 }
 
 // Enable high speed internal 14Mhz clock for ADC
@@ -89,27 +128,35 @@ hsi14_setup(void)
         ;
 }
 
+/****************************************************************
+ * Startup
+ ****************************************************************/
+
 // Main entry point - called from armcm_boot.c:ResetHandler()
 void
 armcm_main(void)
 {
     SystemInit();
 
+    enable_pclock(SYSCFG_BASE);
+
     // Set flash latency
     FLASH->ACR = (1 << FLASH_ACR_LATENCY_Pos) | FLASH_ACR_PRFTBE;
 
     // Configure main clock
-    pll_setup();
+    if (CONFIG_MACH_STM32F0x2 && CONFIG_STM32_CLOCK_REF_INTERNAL
+        && CONFIG_USBSERIAL)
+        hsi48_setup();
+    else
+        pll_setup();
 
     // Turn on hsi14 oscillator for ADC
     hsi14_setup();
 
     // Support pin remapping USB/CAN pins on low pinout stm32f042
 #ifdef SYSCFG_CFGR1_PA11_PA12_RMP
-    if (CONFIG_STM32_CANBUS_PA11_PA12_REMAP) {
-        enable_pclock(SYSCFG_BASE);
+    if (CONFIG_STM32_USB_PA11_PA12_REMAP || CONFIG_STM32_CANBUS_PA11_PA12_REMAP)
         SYSCFG->CFGR1 |= SYSCFG_CFGR1_PA11_PA12_RMP;
-    }
 #endif
 
     timer_init();

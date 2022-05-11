@@ -7,8 +7,14 @@
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // VectorTable
 #include "board/irq.h" // irq_disable
+#include "board/usb_cdc.h" // usb_request_bootloader
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
+
+
+/****************************************************************
+ * Clock setup
+ ****************************************************************/
 
 #define FREQ_PERIPH (CONFIG_CLOCK_FREQ / 2)
 
@@ -203,6 +209,7 @@ gpio_peripheral(uint32_t gpio, uint32_t mode, int pullup)
                                       AFIO_MAPR_CAN_REMAP_REMAP3);
     }
 }
+
 
 /****************************************************************
  * Startup
