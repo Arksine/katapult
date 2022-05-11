@@ -10,10 +10,13 @@
 #include "byteorder.h" // cpu_to_le32
 #include "command.h" // send_ack
 
-// Input Tracking
-#define CMD_BUF_SIZE (CONFIG_BLOCK_SIZE + 64)
-static uint8_t cmd_buf[CMD_BUF_SIZE];
-static uint8_t cmd_pos = 0;
+uint_fast8_t
+command_encode_and_frame(uint8_t *buf, const struct command_encoder *ce
+                         , va_list args)
+{
+    memcpy(buf, ce->data, ce->max_size);
+    return ce->max_size;
+}
 
 static void
 command_respond(uint32_t *data, uint32_t cmdid, uint32_t data_len)
@@ -23,7 +26,9 @@ command_respond(uint32_t *data, uint32_t cmdid, uint32_t data_len)
     // calculate the CRC
     uint16_t crc = crc16_ccitt((uint8_t *)data + 2, (data_len - 2) * 4 + 2);
     data[data_len - 1] = cpu_to_le32(0x0399 << 16 | crc);
-    console_process_tx((uint8_t *)data, data_len * 4);
+
+    struct command_encoder ce = { .data = data, .max_size = data_len * 4 };
+    console_sendf(&ce, (va_list){});
 }
 
 void
@@ -53,9 +58,13 @@ command_get_arg_count(uint32_t *data)
     return le32_to_cpu(data[0]) >> 24;
 }
 
-static void
-process_command(uint8_t cmd, uint32_t *data, uint8_t data_len)
+// Dispatch all the commands found in a message block
+void
+command_dispatch(uint8_t *buf, uint_fast8_t msglen)
 {
+    uint32_t data[DIV_ROUND_UP(MESSAGE_MAX, 4)];
+    memcpy(data, buf, msglen);
+    uint32_t cmd = (le32_to_cpu(data[0]) >> 16) & 0xff;
     switch (cmd) {
         case CMD_CONNECT:
             command_connect(data);
@@ -81,72 +90,73 @@ process_command(uint8_t cmd, uint32_t *data, uint8_t data_len)
     }
 }
 
-static void
-decode_command(void)
+enum { CF_NEED_SYNC=1<<0, CF_NEED_VALID=1<<1 };
+
+// Find the next complete message block
+int_fast8_t
+command_find_block(uint8_t *buf, uint_fast8_t buf_len, uint_fast8_t *pop_count)
 {
-    uint8_t remaining = cmd_pos;
-    uint8_t *tmpbuf = cmd_buf;
-    while (remaining) {
-        if (tmpbuf[0] == 0x01) {
-            // potential match
-            if (remaining >= PROTO_SIZE) {
-                uint16_t header = tmpbuf[0] << 8 | tmpbuf[1];
-                uint8_t cmd = tmpbuf[2];
-                uint8_t length = tmpbuf[3];
-                uint16_t full_length = PROTO_SIZE * 2 + length * 4;
-                if (header == CMD_HEADER) {
-                    if (full_length > CMD_BUF_SIZE) {
-                        // packet too large, nack it and move on
-                        command_respond_nack();
-                    } else if (remaining >= full_length) {
-                        remaining -= full_length;
-                        uint16_t fpos = full_length - 4;
-                        uint16_t trailer = tmpbuf[fpos + 2] << 8 | tmpbuf[fpos + 3];
-                        if (trailer != CMD_TRAILER) {
-                            command_respond_nack();
-                        } else {
-                            uint16_t crc = le16_to_cpu(*(uint16_t *)(&tmpbuf[fpos]));
-                            uint16_t calc_crc = crc16_ccitt(&tmpbuf[2], full_length - 6);
-                            if (crc != calc_crc) {
-                                command_respond_nack();
-                            } else {
-                                // valid command, process
-                                process_command(cmd, (uint32_t *)tmpbuf, length);
-                            }
-                        }
-                        if (!remaining)
-                            break;
-                    } else {
-                        // Header is valid, haven't received full packet
-                        break;
-                    }
-                }
-            } else {
-                // Not enough data, check again after the next read
-                break;
-            }
-        }
-        remaining--;
-        tmpbuf++;
+    static uint8_t sync_state;
+    if (buf_len && sync_state & CF_NEED_SYNC)
+        goto need_sync;
+    if (buf_len < MESSAGE_MIN)
+        goto need_more_data;
+    if (buf[MESSAGE_POS_STX1] != MESSAGE_STX1
+        || buf[MESSAGE_POS_STX2] != MESSAGE_STX2)
+        goto error;
+    uint_fast8_t msglen = buf[MESSAGE_POS_LEN] * 4 + 8;
+    if (msglen < MESSAGE_MIN || msglen > MESSAGE_MAX)
+        goto error;
+    if (buf_len < msglen)
+        goto need_more_data;
+    if (buf[msglen-MESSAGE_TRAILER_SYNC2] != MESSAGE_SYNC2
+        || buf[msglen-MESSAGE_TRAILER_SYNC] != MESSAGE_SYNC)
+        goto error;
+    uint16_t msgcrc = (buf[msglen-MESSAGE_TRAILER_CRC]
+                       | (buf[msglen-MESSAGE_TRAILER_CRC+1] << 8));
+    uint16_t crc = crc16_ccitt(buf+2, msglen-MESSAGE_TRAILER_SIZE-2);
+    if (crc != msgcrc)
+        goto error;
+    sync_state &= ~CF_NEED_VALID;
+    *pop_count = msglen;
+    return 1;
+
+need_more_data:
+    *pop_count = 0;
+    return 0;
+error:
+    sync_state |= CF_NEED_SYNC;
+need_sync: ;
+    // Discard bytes until next SYNC found
+    uint8_t *next_sync = memchr(buf, MESSAGE_STX1, buf_len);
+    if (next_sync) {
+        sync_state &= ~CF_NEED_SYNC;
+        *pop_count = next_sync - buf;
+    } else {
+        *pop_count = buf_len;
     }
-    if (remaining) {
-        // move the buffer
-        uint8_t rpos = cmd_pos - remaining;
-        memmove(&cmd_buf[0], &cmd_buf[rpos], remaining);
-    }
-    cmd_pos = remaining;
+    if (sync_state & CF_NEED_VALID)
+        return -1;
+    sync_state |= CF_NEED_VALID;
+    command_respond_nack();
+    return -1;
 }
 
+// Compat wrapper for klipper low-level code
 void
-console_process_rx(uint8_t *data, uint32_t len)
+command_send_ack(void)
 {
-    // read into the command buffer
-    if (cmd_pos >= CMD_BUF_SIZE)
-        return;
-    else if (cmd_pos + len > CMD_BUF_SIZE)
-        len = CMD_BUF_SIZE - cmd_pos;
-    memcpy(&cmd_buf[cmd_pos], data, len);
-    cmd_pos += len;
-    if (cmd_pos > PROTO_SIZE)
-        decode_command();
+}
+
+// Find a message block and then dispatch all the commands in it
+int_fast8_t
+command_find_and_dispatch(uint8_t *buf, uint_fast8_t buf_len
+                          , uint_fast8_t *pop_count)
+{
+    int_fast8_t ret = command_find_block(buf, buf_len, pop_count);
+    if (ret > 0) {
+        command_dispatch(buf, *pop_count);
+        command_send_ack();
+    }
+    return ret;
 }

@@ -1,6 +1,7 @@
 #ifndef __COMMAND_H
 #define __COMMAND_H
 
+#include <stdarg.h> // va_list
 #include <stdint.h> // uint32_t
 #include "ctr.h" // DECL_CTR
 
@@ -18,7 +19,6 @@
                  2, CTR_INT(VALUE), CTR_INT(COUNT))
 
 #define PROTO_VERSION   0x00010000      // Version 1.0.0
-#define PROTO_SIZE      4
 #define CMD_CONNECT       0x11
 #define CMD_RX_BLOCK      0x12
 #define CMD_RX_EOF        0x13
@@ -31,8 +31,20 @@
 
 // Command Format:
 // <2 byte header> <1 byte cmd> <1 byte data word count> <data> <2 byte crc> <2 byte trailer>
-#define CMD_HEADER      0x0188
-#define CMD_TRAILER     0x9903
+#define MESSAGE_MIN 8
+#define MESSAGE_MAX 128
+#define MESSAGE_HEADER_SIZE  4
+#define MESSAGE_TRAILER_SIZE 4
+#define MESSAGE_POS_STX1 0
+#define MESSAGE_POS_STX2 1
+#define MESSAGE_POS_LEN  3
+#define MESSAGE_TRAILER_CRC   4
+#define MESSAGE_TRAILER_SYNC2 2
+#define MESSAGE_TRAILER_SYNC  1
+#define MESSAGE_STX1  0x01
+#define MESSAGE_STX2  0x88
+#define MESSAGE_SYNC2 0x99
+#define MESSAGE_SYNC  0x03
 
 // command handlers
 void command_connect(uint32_t *data);
@@ -42,13 +54,22 @@ void command_eof(uint32_t *data);
 void command_complete(uint32_t *data);
 void command_get_canbus_id(uint32_t *data);
 
-// board specific code
-void console_process_tx(uint8_t *data, uint32_t size);
-
 // command.c
 void command_respond_ack(uint32_t acked_cmd, uint32_t *out, uint32_t out_len);
 void command_respond_command_error(void);
 int command_get_arg_count(uint32_t *data);
-void console_process_rx(uint8_t *data, uint32_t len);
+
+struct command_encoder {
+    uint32_t *data;
+    uint_fast8_t max_size;
+};
+uint_fast8_t command_encode_and_frame(
+    uint8_t *buf, const struct command_encoder *ce, va_list args);
+int_fast8_t command_find_block(uint8_t *buf, uint_fast8_t buf_len
+                               , uint_fast8_t *pop_count);
+void command_dispatch(uint8_t *buf, uint_fast8_t msglen);
+void command_send_ack(void);
+int_fast8_t command_find_and_dispatch(uint8_t *buf, uint_fast8_t buf_len
+                                      , uint_fast8_t *pop_count);
 
 #endif // command.h
