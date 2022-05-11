@@ -8,7 +8,9 @@
 
 #include <string.h> // memcpy
 #include "canbus.h" // canbus_set_uuid
-#include "command.h" // DECL_TASK
+#include "command.h" // DECL_CONSTANT
+#include "generic/io.h" // readb
+#include "generic/irq.h" // irq_disable
 #include "sched.h" // sched_wake_task
 
 static uint32_t canbus_assigned_id;
@@ -54,15 +56,15 @@ DECL_TASK(canbus_tx_task);
 
 // Encode and transmit a "response" message
 void
-console_process_tx(uint8_t *data, uint32_t size)
+console_sendf(const struct command_encoder *ce, va_list args)
 {
     // Verify space for message
     uint32_t tpos = transmit_pos, tmax = transmit_max;
     if (tpos >= tmax)
         transmit_pos = transmit_max = tpos = tmax = 0;
-
-    if (tmax + size > sizeof(transmit_buf)) {
-        if (tmax + size - tpos > sizeof(transmit_buf))
+    uint32_t max_size = ce->max_size;
+    if (tmax + max_size > sizeof(transmit_buf)) {
+        if (tmax + max_size - tpos > sizeof(transmit_buf))
             // Not enough space for message
             return;
         // Move buffer
@@ -73,10 +75,10 @@ console_process_tx(uint8_t *data, uint32_t size)
     }
 
     // Generate message
-    memcpy(&transmit_buf[tmax], data, size);
+    uint32_t msglen = command_encode_and_frame(&transmit_buf[tmax], ce, args);
 
     // Start message transmit
-    transmit_max = tmax + size;
+    transmit_max = tmax + msglen;
     canbus_notify_tx();
 }
 
@@ -184,14 +186,47 @@ canbus_notify_rx(void)
     sched_wake_task(&canbus_rx_wake);
 }
 
+static uint8_t receive_buf[192], receive_pos;
+DECL_CONSTANT("RECEIVE_WINDOW", ARRAY_SIZE(receive_buf));
+
 // Handle incoming data (called from IRQ handler)
 void
 canbus_process_data(uint32_t id, uint32_t len, uint8_t *data)
 {
     if (!id || id != canbus_assigned_id)
         return;
-    console_process_rx(data, len);
+    int rpos = receive_pos;
+    if (len > sizeof(receive_buf) - rpos)
+        len = sizeof(receive_buf) - rpos;
+    memcpy(&receive_buf[rpos], data, len);
+    receive_pos = rpos + len;
     canbus_notify_rx();
+}
+
+// Remove from the receive buffer the given number of bytes
+static void
+console_pop_input(int len)
+{
+    int copied = 0;
+    for (;;) {
+        int rpos = readb(&receive_pos);
+        int needcopy = rpos - len;
+        if (needcopy) {
+            memmove(&receive_buf[copied], &receive_buf[copied + len]
+                    , needcopy - copied);
+            copied = needcopy;
+            canbus_notify_rx();
+        }
+        irqstatus_t flag = irq_save();
+        if (rpos != readb(&receive_pos)) {
+            // Raced with irq handler - retry
+            irq_restore(flag);
+            continue;
+        }
+        receive_pos = needcopy;
+        irq_restore(flag);
+        break;
+    }
 }
 
 // Task to process incoming commands and admin messages
@@ -212,6 +247,17 @@ canbus_rx_task(void)
             can_id_conflict();
         else if (id == CANBUS_ID_ADMIN)
             can_process(id, ret, data);
+    }
+
+    // Check for a complete message block and process it
+    uint_fast8_t rpos = readb(&receive_pos), pop_count;
+    int ret = command_find_block(receive_buf, rpos, &pop_count);
+    if (ret > 0)
+        command_dispatch(receive_buf, pop_count);
+    if (ret) {
+        console_pop_input(pop_count);
+        if (ret > 0)
+            command_send_ack();
     }
 }
 DECL_TASK(canbus_rx_task);
