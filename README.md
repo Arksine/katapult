@@ -1,5 +1,5 @@
 # CanBoot
- Can Bootloader for STM32F103 MCUs
+ Bootloader for STM32F0/1 MCUs
 
  This bootloader is designed for CAN nodes to be used with
  [Klipper](https://github.com/Klipper3d/klipper).  The bootloader
@@ -7,6 +7,9 @@
  down to keep the footprint minimal.  Currently the bootloader
  reserves 8 KiB of space.
 
+In addition to CANBUS, CanBoot now supports USB and UART interfaces.
+
+Currently STM32F103, STM32F042, and STM32F072 boards are supported.
 
 ## Building
 
@@ -23,19 +26,29 @@ The menuconfig will present the following options:
 - `Processor model`: Currently STM32F042, STMF072, and STM32F103 models are
  supported.
 - `Disable SWD at startup`:  This is an option for GigaDevice STM32F103
-  clones.  Note that these untested on this bootloader. This option only
-  present for "STM32F103" models,
+  clones.  Note that this is untested for the bootloader, GigaDevice clones
+  may not work as expected.
 - `Clock Reference`: Choose the appropriate setting for your board's crystal
-- `CAN pins`: Allows the user to choose which pins are wired to CAN.
-- `Flash Page Size`: The STM32F103 comes in multiple variants.  The low/medium
-  density models have a 1 KiB page size, others a 2KiB page size.  Choose
-  the appropriate selection for your model. This option only present for
-  "STM32F103" models,
-- `CAN bus speed`: Select the appropriate speed for your canbus.
+- `Communication interface`:  Choose between CAN, USB, and UART.  Be sure
+  to choose the interface with the appropriate pins for your hardware.
+- For CAN Interfaces:
+  - `CAN bus speed`: Select the appropriate speed for your canbus.
+- For Serial (USART) Interfaces:
+  - `Baud rate for serial port`:  Select the appropriate baud rate for your
+    serial device.
+- For USB Interfaces:
+  - `USB ids`:  Allows the user to define the USB Vendor ID, Product ID,
+    and/or Serial Number.
+- `Support bootloader entry on rapid double click of reset button`:  When
+  enabled it is possible to enter the bootloader by pressing the reset button
+  twice within a 500ms window.
+- `Enable bootloader entry on button (or gpio) state`:  Enable to use a gpio
+  to enter the booloader.
+  - `Button GPIO Pin`:  The Pin Name of te
 - `Enable Status Led`: Enables the option to select a status LED gpio.
-- `Status LED GPIO Pin`:  The pin name for your LED.  The Pin can be inverted
-  if the LED is on when the pin is low.  For example, the status LED Pin for a
-  "blue pill" is !PC13.
+  - `Status LED GPIO Pin`:  The pin name for your LED.  The Pin can be inverted
+    if the LED is on when the pin is low.  For example, the status LED Pin for a
+    "blue pill" is !PC13.
 
 Once configured and built flash with a programmer such as an ST-Link.  If you
 don't have a programmer available, it should be possible to flash STM32F103
@@ -45,16 +58,19 @@ tools such as `stm32flash` (UART) and `dfu-util` (USB DFU).
 
 NOTE:  Prior to flashing CanBoot it is recommended to do a full chip erase.
 Doing so allows CanBoot to detect that no application is present and enter
-the bootloader.  This is required if your board does no have a reset button.
+the bootloader.  This is required to enter the bootloader if you have not
+configured an alternative method of entry.
 
-## Uploading a Program
-1) Build Klipper with CAN support and with the "8KiB" bootloader setting enabled.
-2) Enter the bootloader.  This may be accomplished through "double tapping" the
-   Reset button.  The second reset should be within 1.5 seconds of the first.
-   If the Status LED is set it will blink every second when the device has
-   entered the bootloader.  A future patch to Klipper should make it possible
-   for `flash_can.py` to direct the device to enter the bootloader.
+## Uploading Klipper
+1) Make sure the `klipper` service stopped.
+2) Build Klipper with CAN support and with the "8KiB" bootloader setting enabled.
+3) Enter the bootloader.  This will occur automatically if no program is detected.
+   If you built CanBoot with an alternative method of entry you may use that.
+   If upgrading from a currently flashed version of Klipper the `flash_can.py`
+   script will command the device to enter the bootloader (currently for CAN
+   devices only).
 3) Run the flash script:
+   For CAN Devices:
    ```
    cd ~/CanBoot
    python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
@@ -67,18 +83,36 @@ the bootloader.  This is required if your board does no have a reset button.
    flash_can.py -i can0 -q
    ```
 
+   For USB/UART devices:
+   Before flashing, make sure pyserial is installed.  This step only needs to
+   be performed once:
+   ```
+   pip install serial
+   ```
+   ```
+   python3 flash_can.py -d <serial device> -b <baud_rate>
+   ```
+   Replace `<serial_device>` the the path to the USB/UART device you wish to
+   flash.  The `<baud_rate>` is only necessary for UART devices, and defaults
+   to 250000 baud if omitted.
+
 ## FlashCan usage
 
 Running `flash_can.py -h` to display help:
 
 ```
-usage: flash_can.py [-h] [-i <can interface>] [-f <klipper.bin>] [-u <uuid>]
-                    [-q]
+usage: flash_can.py [-h] [-d <serial device>] [-b <baud rate>]
+                    [-i <can interface>] [-f <klipper.bin>] [-u <uuid>] [-q]
+                    [-v]
 
 Can Bootloader Flash Utility
 
 optional arguments:
   -h, --help            show this help message and exit
+  -d <serial device>, --device <serial device>
+                        Serial Device
+  -b <baud rate>, --baud <baud rate>
+                        Serial baud rate
   -i <can interface>, --interface <can interface>
                         Can Interface
   -f <klipper.bin>, --firmware <klipper.bin>
@@ -86,6 +120,7 @@ optional arguments:
   -u <uuid>, --uuid <uuid>
                         Can device uuid
   -q, --query           Query Bootloader Device IDs
+  -v, --verbose         Enable verbose responses
 ```
 
 The `interface` option defaults to `can0` if omitted.  The `firmware` option
@@ -101,6 +136,5 @@ the user is running a query with `-q`.
   the verification process.  That said, I have successfully tested the 12 MHz
   Crystal variant with the
   [recommended settings](https://www.waveshare.com/wiki/RS485_CAN_HAT).
-- If you have a STM32F103 device and the verification fails it is likely that
-  you selected the wrong `Flash Page Size`.
-
+- Details on the protocol used to communicate with the bootloader may
+  be found in [protocol.md](protocol.md).
