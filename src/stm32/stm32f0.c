@@ -7,7 +7,6 @@
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // armcm_main
 #include "board/irq.h" // irq_disable
-#include "board/misc.h" // timer_init
 #include "command.h" // DECL_CONSTANT_STR
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
@@ -159,6 +158,5 @@ armcm_main(void)
         SYSCFG->CFGR1 |= SYSCFG_CFGR1_PA11_PA12_RMP;
 #endif
 
-    timer_init();
     sched_main();
 }

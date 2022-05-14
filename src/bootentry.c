@@ -6,11 +6,12 @@
 
 #include <string.h>         // strlen
 #include "autoconf.h"       // CONFIG_*
-#include "board/misc.h"     // udelay
 #include "board/flash.h"    // flash_read_block
 #include "board/gpio.h"     // gpio_in_setup
+#include "board/misc.h"     // set_bootup_code
 #include "bootentry.h"      // bootentry_check
 #include "ctr.h"            // DECL_CTR
+#include "sched.h"          // udelay
 
 #define REQUEST_SIG    0x5984E3FA6CA1589B // Random request sig
 

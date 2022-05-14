@@ -9,6 +9,15 @@
 #include "bootentry.h" // bootentry_check
 #include "sched.h" // sched_check_periodic
 
+// Implement simple delay mechanism
+void
+udelay(uint32_t usecs)
+{
+    uint32_t end = timer_read_time() + timer_from_us(usecs);
+    while (timer_is_before(timer_read_time(), end))
+        ;
+}
+
 // Wrapper for Klipper compatibility
 void
 sched_wake_tasks(void)
@@ -36,6 +45,7 @@ sched_check_wake(struct task_wake *w)
 void
 sched_main(void)
 {
+    timer_setup();
     if (!bootentry_check())
         jump_to_application();
 

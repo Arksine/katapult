@@ -35,16 +35,10 @@ timer_read_time(void)
     return DWT->CYCCNT;
 }
 
-// Implement simple early-boot delay mechanism
+// Initialize the timer
 void
-udelay(uint32_t usecs)
+timer_setup(void)
 {
-    if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)) {
-        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-        DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-    }
-
-    uint32_t end = timer_read_time() + timer_from_us(usecs);
-    while (timer_is_before(timer_read_time(), end))
-        ;
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
