@@ -341,11 +341,20 @@ config CANBUS_FREQUENCY
 # Flash settings
 ######################################################################
 
+choice
+    prompt "Application start offset"
+    depends on MACH_STM32F0 || MACH_STM32F1
+    config STM32_APP_START_1000
+        bool "4KiB offset"
+    config STM32_APP_START_2000
+        bool "8KiB offset"
+endchoice
+
 config APPLICATION_START
     hex
-    default 0x8002000 if MACH_STM32F103
-    default 0x8008000 if MACH_STM32F4
-    default 0x8002000
+    default 0x8001000 if STM32_APP_START_1000
+    default 0x8002000 if STM32_APP_START_2000
+    default 0x8008000
 
 config MAX_FLASH_PAGE_SIZE
     hex
