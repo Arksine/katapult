@@ -59,4 +59,5 @@ target-y += $(OUT)canboot.bin
 
 $(OUT)canboot.bin: $(OUT)canboot.elf
 	@echo "  Creating hex file $@"
-	$(Q)$(OBJCOPY) -O binary $< $@
+	$(Q)$(OBJCOPY) -O binary $< $(OUT)canboot.work
+	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_APPLICATION_START) $(OUT)canboot.work $@
