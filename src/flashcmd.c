@@ -72,7 +72,7 @@ flashcmd_is_in_transfer(void)
 static void
 write_page(uint32_t page_address)
 {
-    flash_write_page(page_address, (uint16_t*)page_buffer);
+    flash_write_page(page_address, page_buffer);
     memset(page_buffer, 0xFF, sizeof(page_buffer));
     last_page_address = page_address;
     page_pending = 0;
