@@ -9,7 +9,7 @@
 #include "board/irq.h" // irq_disable
 #include "board/usb_cdc.h" // usb_request_bootloader
 #include "internal.h" // enable_pclock
-#include "canboot_main.h" // sched_main
+#include "sched.h" // sched_main
 
 
 /****************************************************************
