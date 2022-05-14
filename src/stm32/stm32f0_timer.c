@@ -73,8 +73,9 @@ TIMx_IRQHandler(void)
     irq_enable();
 }
 
+// Initialize the timer
 void
-timer_init(void)
+timer_setup(void)
 {
     irqstatus_t flag = irq_save();
     enable_pclock((uint32_t)TIMx);
@@ -103,13 +104,4 @@ uint8_t
 timer_is_before(uint32_t time1, uint32_t time2)
 {
     return (int32_t)(time1 - time2) < 0;
-}
-
-// Implement simple early-boot delay mechanism
-void
-udelay(uint32_t usecs)
-{
-    uint32_t end = timer_read_time() + timer_from_us(usecs);
-    while (timer_is_before(timer_read_time(), end))
-        ;
 }

@@ -12,8 +12,7 @@ uint64_t get_bootup_code(void);
 void set_bootup_code(uint64_t code);
 void jump_to_application(void);
 
-void timer_init(void);
-void udelay(uint32_t usecs);
+void timer_setup(void);
 
 uint32_t timer_from_us(uint32_t us);
 uint8_t timer_is_before(uint32_t time1, uint32_t time2);

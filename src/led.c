@@ -24,9 +24,6 @@ void
 led_init(void)
 {
     led = gpio_out_setup(led_gpio, led_gpio_high);
-    // The short delay is simply to ensure that the Debug Timer is
-    // enabled
-    udelay(10);
     last_blink_time = timer_read_time();
 }
 DECL_INIT(led_init);
