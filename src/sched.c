@@ -47,7 +47,7 @@ sched_main(void)
 {
     timer_setup();
     if (!bootentry_check())
-        jump_to_application();
+        application_jump();
 
     // Run all init functions marked with DECL_INIT()
     extern void ctr_run_initfuncs(void);

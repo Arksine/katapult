@@ -7,7 +7,7 @@
 #include <string.h> // memmove
 #include "autoconf.h" // CONFIG_BLOCK_SIZE
 #include "board/flash.h" // flash_write_page
-#include "board/misc.h" // jump_to_application
+#include "board/misc.h" // application_jump
 #include "byteorder.h" // cpu_to_le32
 #include "command.h" // command_respond_ack
 #include "flashcmd.h" // flashcmd_is_in_transfer
@@ -48,7 +48,7 @@ void
 complete_task(void)
 {
     if (complete && timer_is_before(complete_endtime, timer_read_time()))
-        jump_to_application();
+        application_jump();
 }
 DECL_TASK(complete_task);
 
@@ -85,7 +85,7 @@ command_read_block(uint32_t *data)
     uint32_t block_address = le32_to_cpu(data[1]);
     uint32_t out[CONFIG_BLOCK_SIZE / 4 + 2 + 2];
     out[2] = cpu_to_le32(block_address);
-    flash_read_block(block_address, &out[3]);
+    application_read_flash(block_address, &out[3]);
     command_respond_ack(CMD_REQ_BLOCK, out, ARRAY_SIZE(out));
 }
 

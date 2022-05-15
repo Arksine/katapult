@@ -44,20 +44,6 @@ check_double_reset(void)
     // No reset, read the key back out to clear it
 }
 
-static uint8_t
-check_application_code(void)
-{
-    // Read the first block of memory, if it
-    // is all 0xFF then no application has been flashed
-    uint8_t buf[CONFIG_BLOCK_SIZE];
-    flash_read_block(CONFIG_APPLICATION_START, (uint32_t*)buf);
-    for (uint8_t i = 0; i < CONFIG_BLOCK_SIZE; i++) {
-        if (buf[i] != 0xFF)
-            return 1;
-    }
-    return 0;
-}
-
 // Check if bootloader or application should be started
 int
 bootentry_check(void)
@@ -66,7 +52,7 @@ bootentry_check(void)
     // - The request signature is set in memory (request from app)
     // - No application code is present
     uint64_t bootup_code = get_bootup_code();
-    if (bootup_code == REQUEST_SIG || !check_application_code()
+    if (bootup_code == REQUEST_SIG || !application_check_valid()
         || check_button_pressed()) {
         // Start bootloader main loop
         set_bootup_code(0);
