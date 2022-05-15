@@ -21,14 +21,14 @@ extern uint32_t _stack_end;
 uint64_t
 get_bootup_code(void)
 {
-    uint64_t *req_code = (void*)&_stack_end;
+    volatile uint64_t *req_code = (volatile void*)&_stack_end;
     return *req_code;
 }
 
 void
 set_bootup_code(uint64_t code)
 {
-    uint64_t *req_code = (void*)&_stack_end;
+    volatile uint64_t *req_code = (volatile void*)&_stack_end;
     *req_code = code;
 }
 
