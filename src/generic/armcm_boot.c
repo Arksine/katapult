@@ -4,6 +4,7 @@
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
+#include <string.h> // memcpy
 #include "armcm_boot.h" // DECL_ARMCM_IRQ
 #include "autoconf.h" // CONFIG_MCU
 #include "board/internal.h" // SysTick
@@ -33,10 +34,26 @@ set_bootup_code(uint64_t code)
     barrier();
 }
 
+// Helper function to read area of flash
+void
+application_read_flash(uint32_t address, uint32_t *dest)
+{
+    memcpy(dest, (void*)address, CONFIG_BLOCK_SIZE);
+}
+
+// Check if the application flash area looks valid
+int
+application_check_valid(void)
+{
+    uint32_t *app = (void*)CONFIG_APPLICATION_START;
+    return *app != 0 && *app != 0xffffffff;
+}
+
 #define REQUEST_START_APP 0x7b06ec45a9a8243d
 
+// Jump to the main application (exiting the bootloader)
 void
-jump_to_application(void)
+application_jump(void)
 {
     irq_disable();
     set_bootup_code(REQUEST_START_APP);
