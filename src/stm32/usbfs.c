@@ -6,7 +6,6 @@
 
 #include <string.h> // NULL
 #include "board/armcm_boot.h" // armcm_enable_irq
-#include "board/armcm_timer.h" // udelay
 #include "board/gpio.h" // gpio_out_setup
 #include "board/io.h" // writeb
 #include "board/usb_cdc.h" // usb_notify_ep0
