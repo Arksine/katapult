@@ -57,7 +57,7 @@ DECL_TASK(complete_task);
  * Flash commands
  ****************************************************************/
 
-static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE];
+static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE] __aligned(4);
 // Page Tracking
 static uint32_t last_page_address = 0;
 static uint8_t page_pending = 0;
