@@ -21,15 +21,16 @@ extern uint32_t _stack_end;
 uint64_t
 get_bootup_code(void)
 {
-    volatile uint64_t *req_code = (volatile void*)&_stack_end;
+    uint64_t *req_code = (void*)&_stack_end;
     return *req_code;
 }
 
 void
 set_bootup_code(uint64_t code)
 {
-    volatile uint64_t *req_code = (volatile void*)&_stack_end;
+    uint64_t *req_code = (void*)&_stack_end;
     *req_code = code;
+    barrier();
 }
 
 #define REQUEST_START_APP 0x7b06ec45a9a8243d
