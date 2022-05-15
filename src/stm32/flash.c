@@ -4,9 +4,10 @@
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
-#include "flash.h"
-#include "autoconf.h"
-#include "internal.h"
+#include <string.h> // memcpy
+#include "autoconf.h" // CONFIG_MACH_STM32F103
+#include "flash.h" // flash_write_page
+#include "internal.h" // FLASH
 
 uint32_t
 flash_get_page_size(void)
@@ -72,8 +73,5 @@ flash_write_page(uint32_t page_address, uint16_t *data)
 void
 flash_read_block(uint32_t block_address, uint32_t *buffer)
 {
-    uint32_t* block_addr = (uint32_t*)block_address;
-
-    for (uint8_t i = 0; i < CONFIG_BLOCK_SIZE / 4; i++)
-        buffer[i] = block_addr[i];
+    memcpy(buffer, (void*)block_address, CONFIG_BLOCK_SIZE);
 }
