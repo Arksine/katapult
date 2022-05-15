@@ -583,7 +583,7 @@ def main():
 
     args = parser.parse_args()
     if not args.verbose:
-        logging.getLogger().setLevel(logging.CRITICAL)
+        logging.getLogger().setLevel(logging.ERROR)
     intf = args.interface
     fpath = pathlib.Path(args.firmware).expanduser().resolve()
     loop = asyncio.get_event_loop()
