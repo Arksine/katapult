@@ -499,13 +499,13 @@ class CanSocket:
 class SerialSocket:
     def __init__(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
-        self.serial = None
+        self.serial = self.serial_error = None
         self.node = CanNode(0, self)
 
     def _handle_response(self) -> None:
         try:
             data = self.serial.read(4096)
-        except self.serial.SerialException as e:
+        except self.serial_error as e:
             logging.exception("Error on serial read")
             self.close()
         self.node.feed_data(data)
@@ -513,21 +513,22 @@ class SerialSocket:
     def send(self, can_id: int, payload: bytes = b"") -> None:
         try:
             self.serial.write(payload)
-        except self.serial.SerialException as e:
-            logging.exception("Error on serial read")
+        except self.serial_error as e:
+            logging.exception("Error on serial write")
             self.close()
 
     async def run(self, intf: str, baud: int, fw_path: pathlib.Path) -> None:
         if not fw_path.is_file():
             raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
         import serial
+        self.serial_error = serial.SerialException
         try:
             serial_dev = serial.Serial(baudrate=baud, timeout=0,
                                        exclusive=True)
             serial_dev.port = intf
             serial_dev.open()
-        except (OSError, IOError, serial.SerialException) as e:
-            logging.warn("Unable to open serial port: %s", e)
+        except (OSError, IOError, self.serial_error) as e:
+            raise FlashCanError("Unable to open serial port: %s" % (e,))
         self.serial = serial_dev
         self._loop.add_reader(self.serial.fileno(), self._handle_response)
         flasher = CanFlasher(self.node, fw_path)
