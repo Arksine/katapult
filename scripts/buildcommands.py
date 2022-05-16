@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # Script to handle build time requests embedded in C code.
 #
-# Copyright (C) 2016-2018  Kevin O'Connor <kevin@koconnor.net>
+# Copyright (C) 2016-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import sys, optparse, logging
@@ -11,7 +11,9 @@ FILEHEADER = """
 
 #include <stdint.h>
 #include "board/irq.h"
+#include "board/pgm.h"
 #include "compiler.h"
+#include "initial_pins.h"
 """
 
 def error(msg):
@@ -98,7 +100,6 @@ class HandleEnumerations:
     def generate_code(self, options):
         return ""
 
-
 HandlerEnumerations = HandleEnumerations()
 Handlers.append(HandlerEnumerations)
 
@@ -136,12 +137,62 @@ class HandleConstants:
                 rpins = [v.strip() for v in val.split(',') if v.strip()]
                 reserved_pins.extend(rpins)
         return reserved_pins
+    def lookup_pin(self, pin):
+        avail_pins = HandlerEnumerations.get_available_pins()
+        gpio = avail_pins.get(pin)
+        if gpio is None:
+            error("Pin %s is not available for this build" % (pin,))
+        reserved_pins = self.get_reserved_pins()
+        if pin in reserved_pins:
+            error("Pin %s is reserved by an active MCU peripheral" % (pin,))
+        return gpio
     def generate_code(self, options):
         return ""
 
-
 HandlerConstants = HandleConstants()
 Handlers.append(HandlerConstants)
+
+
+######################################################################
+# Initial pins
+######################################################################
+
+class HandleInitialPins:
+    def __init__(self):
+        self.initial_pins = []
+        self.ctr_dispatch = { 'DECL_INITIAL_PINS': self.decl_initial_pins }
+    def decl_initial_pins(self, req):
+        pins = req.split(None, 1)[1].strip()
+        if pins.startswith('"') and pins.endswith('"'):
+            pins = pins[1:-1]
+        if pins:
+            self.initial_pins = [p.strip() for p in pins.split(',')]
+            HandlerConstants.decl_constant_str(
+                "_DECL_CONSTANT_STR INITIAL_PINS "
+                + ','.join(self.initial_pins))
+    def map_pins(self):
+        if not self.initial_pins:
+            return []
+        out = []
+        for p in self.initial_pins:
+            flag = "IP_OUT_HIGH"
+            if p.startswith('!'):
+                flag = "0"
+                p = p[1:].strip()
+            gpio = HandlerConstants.lookup_pin(p)
+            out.append("\n    {%d, %s}, // %s" % (gpio, flag, p))
+        return out
+    def generate_code(self, options):
+        out = self.map_pins()
+        fmt = """
+const struct initial_pin_s initial_pins[] PROGMEM = {%s
+};
+const int initial_pins_size PROGMEM = ARRAY_SIZE(initial_pins);
+"""
+        return fmt % (''.join(out),)
+
+Handlers.append(HandleInitialPins())
+
 
 ######################################################################
 # ARM IRQ vector table generation
@@ -182,8 +233,8 @@ const void *VectorTable[] __visible __section(".vector_table") = {
 """
         return fmt % (''.join(defs), ''.join(table))
 
-
 Handlers.append(Handle_arm_irq())
+
 
 ######################################################################
 # Status LED Functionality
@@ -206,20 +257,14 @@ class HandleStatusLED:
             if pin[0] == "!":
                 led_gpio_high = 0
                 pin = pin[1:].strip()
-            avail_pins = HandlerEnumerations.get_available_pins()
-            reserved_pins = HandlerConstants.get_reserved_pins()
-            led_gpio = avail_pins.get(pin)
-            if led_gpio is None:
-                error("Pin %s is not available for this build" % pin)
-            if pin in reserved_pins:
-                error("Pin %s is reserved by an active MCU peripheral" % pin)
+            led_gpio = HandlerConstants.lookup_pin(pin)
         fmt = """
 uint32_t led_gpio = %d, led_gpio_high = %d; // "%s"
 """
         return fmt % (led_gpio, led_gpio_high, self.pin)
 
-
 Handlers.append(HandleStatusLED())
+
 
 ######################################################################
 # Button entry functionality
@@ -247,20 +292,14 @@ class HandleButton:
             if pin[0] == "!":
                 button_high = 0
                 pin = pin[1:].strip()
-            avail_pins = HandlerEnumerations.get_available_pins()
-            reserved_pins = HandlerConstants.get_reserved_pins()
-            button_gpio = avail_pins.get(pin)
-            if button_gpio is None:
-                error("Pin %s is not available for this build" % pin)
-            if pin in reserved_pins:
-                error("Pin %s is reserved by an active MCU peripheral" % pin)
+            button_gpio = HandlerConstants.lookup_pin(pin)
         fmt = """
 int32_t button_gpio = %d, button_high = %d, button_pullup = %d; // "%s"
 """
         return fmt % (button_gpio, button_high, button_pullup, self.pin)
 
-
 Handlers.append(HandleButton())
+
 
 ######################################################################
 # Main code
@@ -271,6 +310,7 @@ def main():
     opts = optparse.OptionParser(usage)
     opts.add_option("-v", action="store_true", dest="verbose",
                     help="enable debug messages")
+
     options, args = opts.parse_args()
     if len(args) != 2:
         opts.error("Incorrect arguments")
@@ -280,7 +320,7 @@ def main():
 
     # Parse request file
     ctr_dispatch = { k: v for h in Handlers for k, v in h.ctr_dispatch.items() }
-    f = open(incmdfile, 'rb')
+    f = open(incmdfile, 'r')
     data = f.read()
     f.close()
     for req in data.split('\n'):
@@ -294,7 +334,7 @@ def main():
 
     # Write output
     code = "".join([FILEHEADER] + [h.generate_code(options) for h in Handlers])
-    f = open(outcfile, 'wb')
+    f = open(outcfile, 'w')
     f.write(code)
     f.close()
 
