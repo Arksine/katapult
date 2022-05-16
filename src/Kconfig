@@ -6,11 +6,16 @@ config LOW_LEVEL_OPTIONS
     bool
     default y
 
-config MACH_STM32
-    bool
-    default y
+choice
+    prompt "Micro-controller Architecture"
+    config MACH_STM32
+        bool "STMicroelectronics STM32"
+    config MACH_LPC176X
+        bool "LPC176x (Smoothieboard)"
+endchoice
 
 source "src/stm32/Kconfig"
+source "src/lpc176x/Kconfig"
 
 # Generic configuration options for serial ports
 config SERIAL_BAUD
