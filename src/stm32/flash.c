@@ -4,9 +4,10 @@
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
+#include <string.h> // memset
 #include "autoconf.h" // CONFIG_MACH_STM32F103
 #include "board/io.h" // writew
-#include "flash.h" // flash_write_page
+#include "flash.h" // flash_write_block
 #include "internal.h" // FLASH
 
 #define STM32F4_MIN_SECTOR_SIZE 16384
@@ -16,7 +17,7 @@
 #define FLASH_KEY2 (0xCDEF89ABUL)
 #endif
 
-uint32_t
+static uint32_t
 flash_get_page_size(void)
 {
     if (CONFIG_MACH_STM32F103) {
@@ -122,7 +123,7 @@ flash_write_stm32f1xx(uint32_t page_address, uint16_t *data)
 #endif
 }
 
-void
+static void
 flash_write_page(uint32_t page_address, void *data)
 {
     if (CONFIG_MACH_STM32F4) {
@@ -132,8 +133,39 @@ flash_write_page(uint32_t page_address, void *data)
     }
 }
 
-void
+static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE] __aligned(4);
+// Page Tracking
+static uint32_t last_page_address = 0;
+static uint8_t page_pending = 0;
+
+static void
+write_page(uint32_t page_address)
+{
+    flash_write_page(page_address, page_buffer);
+    memset(page_buffer, 0xFF, sizeof(page_buffer));
+    last_page_address = page_address;
+    page_pending = 0;
+}
+
+int
+flash_write_block(uint32_t block_address, uint32_t *data)
+{
+    uint32_t flash_page_size = flash_get_page_size();
+    uint32_t page_pos = block_address % flash_page_size;
+    memcpy(&page_buffer[page_pos], (uint8_t *)&data[2], CONFIG_BLOCK_SIZE);
+    page_pending = 1;
+    if (page_pos + CONFIG_BLOCK_SIZE == flash_page_size)
+        write_page(block_address - page_pos);
+    return 0;
+}
+
+int
 flash_complete(void)
 {
-    lock_flash();
+    uint32_t flash_page_size = flash_get_page_size();
+    if (page_pending) {
+        write_page(last_page_address + flash_page_size);
+    }
+    return ((last_page_address - CONFIG_APPLICATION_START)
+            / flash_page_size) + 1;
 }

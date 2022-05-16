@@ -6,7 +6,7 @@
 
 #include <string.h> // memmove
 #include "autoconf.h" // CONFIG_BLOCK_SIZE
-#include "board/flash.h" // flash_write_page
+#include "board/flash.h" // flash_write_block
 #include "board/misc.h" // application_jump
 #include "byteorder.h" // cpu_to_le32
 #include "command.h" // command_respond_ack
@@ -57,25 +57,12 @@ DECL_TASK(complete_task);
  * Flash commands
  ****************************************************************/
 
-static uint8_t page_buffer[CONFIG_MAX_FLASH_PAGE_SIZE] __aligned(4);
-// Page Tracking
-static uint32_t last_page_address = 0;
-static uint8_t page_pending = 0;
 static uint8_t is_in_transfer;
 
 int
 flashcmd_is_in_transfer(void)
 {
     return is_in_transfer;
-}
-
-static void
-write_page(uint32_t page_address)
-{
-    flash_write_page(page_address, page_buffer);
-    memset(page_buffer, 0xFF, sizeof(page_buffer));
-    last_page_address = page_address;
-    page_pending = 0;
 }
 
 void
@@ -93,38 +80,32 @@ void
 command_write_block(uint32_t *data)
 {
     is_in_transfer = 1;
-    if (command_get_arg_count(data) != (CONFIG_BLOCK_SIZE / 4) + 1) {
-        command_respond_command_error();
-        return;
-    }
+    if (command_get_arg_count(data) != (CONFIG_BLOCK_SIZE / 4) + 1)
+        goto fail;
     uint32_t block_address = le32_to_cpu(data[1]);
-    if (block_address < CONFIG_APPLICATION_START) {
-        command_respond_command_error();
-        return;
-    }
-    uint32_t flash_page_size = flash_get_page_size();
-    uint32_t page_pos = block_address % flash_page_size;
-    memcpy(&page_buffer[page_pos], (uint8_t *)&data[2], CONFIG_BLOCK_SIZE);
-    page_pending = 1;
-    if (page_pos + CONFIG_BLOCK_SIZE == flash_page_size)
-        write_page(block_address - page_pos);
+    if (block_address < CONFIG_APPLICATION_START)
+        goto fail;
+    int ret = flash_write_block(block_address, &data[2]);
+    if (ret < 0)
+        goto fail;
     uint32_t out[4];
     out[2] = cpu_to_le32(block_address);
     command_respond_ack(CMD_RX_BLOCK, out, ARRAY_SIZE(out));
+    return;
+fail:
+    command_respond_command_error();
 }
 
 void
 command_eof(uint32_t *data)
 {
     is_in_transfer = 0;
-    uint32_t flash_page_size = flash_get_page_size();
-    if (page_pending) {
-        write_page(last_page_address + flash_page_size);
+    int ret = flash_complete();
+    if (ret < 0) {
+        command_respond_command_error();
+        return;
     }
-    flash_complete();
     uint32_t out[4];
-    out[2] = cpu_to_le32(
-        ((last_page_address - CONFIG_APPLICATION_START)
-        / flash_page_size) + 1);
+    out[2] = cpu_to_le32(ret);
     command_respond_ack(CMD_RX_EOF, out, ARRAY_SIZE(out));
 }
