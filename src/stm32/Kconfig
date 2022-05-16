@@ -356,12 +356,6 @@ config APPLICATION_START
     default 0x8002000 if STM32_APP_START_2000
     default 0x8008000
 
-config MAX_FLASH_PAGE_SIZE
-    hex
-    default 0x400 if MACH_STM32F042
-    default 0x800 if MACH_STM32F072 || MACH_STM32F103
-    default 0x400
-
 config BLOCK_SIZE
     int
     default 64
