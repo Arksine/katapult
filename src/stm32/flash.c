@@ -10,7 +10,7 @@
 #include "flash.h" // flash_write_block
 #include "internal.h" // FLASH
 
-#if CONFIG_MACH_STM32F4
+#if CONFIG_MACH_STM32F2 || CONFIG_MACH_STM32F4
 #define FLASH_KEY1 (0x45670123UL)
 #define FLASH_KEY2 (0xCDEF89ABUL)
 
@@ -31,7 +31,7 @@ stm32f4_sector_index(uint32_t addr)
 static uint32_t
 flash_get_page_size(uint32_t addr)
 {
-    if (CONFIG_MACH_STM32F4) {
+    if (CONFIG_MACH_STM32F2 || CONFIG_MACH_STM32F4) {
         if (addr < 0x08010000)
             return 16 * 1024;
         else if (addr < 0x08020000)
@@ -91,7 +91,7 @@ lock_flash(void)
 static void
 erase_page(uint32_t page_address)
 {
-#if CONFIG_MACH_STM32F4
+#if CONFIG_MACH_STM32F2 || CONFIG_MACH_STM32F4
     FLASH->CR = (FLASH_CR_PSIZE_1 | FLASH_CR_STRT | FLASH_CR_SER
                  | ((stm32f4_sector_index(page_address) & 0xF) << 3));
 #else
@@ -106,7 +106,7 @@ erase_page(uint32_t page_address)
 static void
 write_block(uint32_t block_address, uint32_t *data)
 {
-#if CONFIG_MACH_STM32F4
+#if CONFIG_MACH_STM32F2 || CONFIG_MACH_STM32F4
     uint32_t *page = (void*)block_address;
     FLASH->CR = FLASH_CR_PSIZE_1 | FLASH_CR_PG;
     for (int i = 0; i < CONFIG_BLOCK_SIZE / 4; i++) {

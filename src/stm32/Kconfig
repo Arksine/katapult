@@ -30,7 +30,7 @@ choice
         bool "STM32F103"
         select MACH_STM32F1
     config MACH_STM32F207
-        bool "STM32F207" if 0
+        bool "STM32F207"
         select MACH_STM32F2
     config MACH_STM32F401
         bool "STM32F401"
@@ -344,9 +344,9 @@ config CANBUS_FREQUENCY
 choice
     prompt "Application start offset"
     config STM32_APP_START_8000
-        bool "32KiB offset" if MACH_STM32F4
+        bool "32KiB offset" if MACH_STM32F2 || MACH_STM32F4
     config STM32_APP_START_4000
-        bool "16KiB offset" if MACH_STM32F4
+        bool "16KiB offset" if MACH_STM32F2 || MACH_STM32F4
     config STM32_APP_START_2000
         bool "8KiB offset" if MACH_STM32F0 || MACH_STM32F1
     config STM32_APP_START_1000
