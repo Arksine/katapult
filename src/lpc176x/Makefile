@@ -12,7 +12,7 @@ CFLAGS_canboot.elf += -T $(OUT)src/generic/armcm_link.ld
 $(OUT)canboot.elf: $(OUT)src/generic/armcm_link.ld
 
 # Add source files
-src-y += lpc176x/main.c lpc176x/gpio.c
+src-y += lpc176x/main.c lpc176x/gpio.c lpc176x/flash.c
 src-y += generic/armcm_boot.c generic/armcm_irq.c
 src-y += generic/armcm_timer.c generic/crc16_ccitt.c
 src-y += ../lib/lpc176x/device/system_LPC17xx.c
