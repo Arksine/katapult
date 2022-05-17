@@ -65,7 +65,7 @@ choice
         select MACH_STM32F0
         select MACH_STM32F0x2
     config MACH_STM32G0B1
-        bool "STM32G0B1" if 0
+        bool "STM32G0B1"
         select MACH_STM32G0
     config MACH_STM32H743
         bool "STM32H743" if 0
@@ -348,9 +348,9 @@ choice
     config STM32_APP_START_4000
         bool "16KiB offset" if MACH_STM32F2 || MACH_STM32F4
     config STM32_APP_START_2000
-        bool "8KiB offset" if MACH_STM32F0 || MACH_STM32F1
+        bool "8KiB offset" if MACH_STM32F0 || MACH_STM32F1 || MACH_STM32G0
     config STM32_APP_START_1000
-        bool "4KiB offset" if MACH_STM32F0 || MACH_STM32F1
+        bool "4KiB offset" if MACH_STM32F0 || MACH_STM32F1 || MACH_STM32G0
 endchoice
 
 config APPLICATION_START

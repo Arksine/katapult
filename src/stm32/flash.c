@@ -32,6 +32,8 @@ flash_get_page_size(uint32_t addr)
             return 2 * 1024;
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
         return *flash_size <= 64 ? 1024 : 2 * 1024;
+    } else if (CONFIG_MACH_STM32G0) {
+        return 2 * 1024;
     }
 }
 
@@ -45,6 +47,10 @@ check_erased(uint32_t addr, uint32_t count)
             return 0;
     return 1;
 }
+
+#if CONFIG_MACH_STM32G0 // stm32g0 chip has slightly different bit name
+#define FLASH_SR_BSY (FLASH_SR_BSY1 | FLASH_SR_BSY2)
+#endif
 
 // Wait for flash hardware to report ready
 static void
@@ -93,10 +99,21 @@ erase_page(uint32_t page_address)
     sidx = sidx > 0x0f ? 0x0f : sidx;
     FLASH->CR = (FLASH_CR_PSIZE_1 | FLASH_CR_STRT | FLASH_CR_SER
                  | (sidx << FLASH_CR_SNB_Pos));
-#else
+#elif CONFIG_MACH_STM32F0 || CONFIG_MACH_STM32F1
     FLASH->CR = FLASH_CR_PER;
     FLASH->AR = page_address;
     FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT;
+#elif CONFIG_MACH_STM32G0
+    uint32_t pidx = (page_address - 0x08000000) / (2 * 1024);
+    if (pidx >= 64) {
+        uint16_t *flash_size = (void*)FLASHSIZE_BASE;
+        if (*flash_size <= 256)
+            pidx = pidx + 256 - 64;
+        else
+            pidx = pidx < 128 ? pidx : pidx + 256 - 128;
+    }
+    pidx = pidx > 0x3ff ? 0x3ff : pidx;
+    FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT | (pidx << FLASH_CR_PNB_Pos);
 #endif
     wait_flash();
 }
@@ -112,11 +129,19 @@ write_block(uint32_t block_address, uint32_t *data)
         writel(&page[i], data[i]);
         wait_flash();
     }
-#else
+#elif CONFIG_MACH_STM32F0 || CONFIG_MACH_STM32F1
     uint16_t *page = (void*)block_address, *data16 = (void*)data;
     FLASH->CR = FLASH_CR_PG;
     for (int i = 0; i < CONFIG_BLOCK_SIZE / 2; i++) {
         writew(&page[i], data16[i]);
+        wait_flash();
+    }
+#elif CONFIG_MACH_STM32G0
+    uint32_t *page = (void*)block_address;
+    FLASH->CR = FLASH_CR_PG;
+    for (int i = 0; i < CONFIG_BLOCK_SIZE / 8; i++) {
+        writel(&page[i*2], data[i*2]);
+        writel(&page[i*2 + 1], data[i*2 + 1]);
         wait_flash();
     }
 #endif
