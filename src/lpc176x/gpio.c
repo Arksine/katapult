@@ -64,14 +64,10 @@ regs_to_pin(LPC_GPIO_TypeDef *regs, uint32_t bit)
 struct gpio_out
 gpio_out_setup(uint8_t pin, uint8_t val)
 {
-    if (GPIO2PORT(pin) >= ARRAY_SIZE(digital_regs))
-        goto fail;
     LPC_GPIO_TypeDef *regs = digital_regs[GPIO2PORT(pin)];
     struct gpio_out g = { .regs=regs, .bit=GPIO2BIT(pin) };
     gpio_out_reset(g, val);
     return g;
-fail:
-    shutdown("Not an output pin");
 }
 
 void
@@ -115,14 +111,10 @@ gpio_out_write(struct gpio_out g, uint8_t val)
 struct gpio_in
 gpio_in_setup(uint8_t pin, int8_t pull_up)
 {
-    if (GPIO2PORT(pin) >= ARRAY_SIZE(digital_regs))
-        goto fail;
     LPC_GPIO_TypeDef *regs = digital_regs[GPIO2PORT(pin)];
     struct gpio_in g = { .regs=regs, .bit=GPIO2BIT(pin) };
     gpio_in_reset(g, pull_up);
     return g;
-fail:
-    shutdown("Not an input pin");
 }
 
 void

@@ -244,22 +244,6 @@ usb_set_configure(void)
     usb_irq_enable();
 }
 
-void
-usb_request_bootloader(void)
-{
-    if (!CONFIG_SMOOTHIEWARE_BOOTLOADER)
-        return;
-    // Disable USB and pause for 5ms so host recognizes a disconnect
-    irq_disable();
-    sie_cmd_write(SIE_CMD_SET_DEVICE_STATUS, 0);
-    udelay(5000);
-    // The "LPC17xx-DFU-Bootloader" will enter the bootloader if the
-    // watchdog timeout flag is set.
-    LPC_WDT->WDMOD = 0x07;
-    NVIC_SystemReset();
-}
-
-
 /****************************************************************
  * Setup and interrupts
  ****************************************************************/
