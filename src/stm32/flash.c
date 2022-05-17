@@ -38,15 +38,18 @@ flash_get_page_size(uint32_t addr)
             return 64 * 1024;
         else
             return 128 * 1024;
-    } else if (CONFIG_MACH_STM32F042) {
-        return 1024;
     } else if (CONFIG_MACH_STM32F103) {
         // Check for a 1K page size on the stm32f103
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
-        if (*flash_size < 256)
+        return *flash_size < 256 ? 1024 : 2 * 1024;
+    } else if (CONFIG_MACH_STM32F0) {
+        if (CONFIG_MACH_STM32F042)
             return 1024;
+        if (CONFIG_MACH_STM32F072)
+            return 2 * 1024;
+        uint16_t *flash_size = (void*)FLASHSIZE_BASE;
+        return *flash_size <= 64 ? 1024 : 2 * 1024;
     }
-    return 2 * 1024;
 }
 
 // Check if the data at the given address has been erased (all 0xff)
