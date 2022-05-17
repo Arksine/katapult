@@ -343,15 +343,20 @@ config CANBUS_FREQUENCY
 
 choice
     prompt "Application start offset"
-    depends on MACH_STM32F0 || MACH_STM32F1
+    config STM32_APP_START_8000
+        bool "32KiB offset" if MACH_STM32F4
+    config STM32_APP_START_4000
+        bool "16KiB offset" if MACH_STM32F4
     config STM32_APP_START_2000
-        bool "8KiB offset"
+        bool "8KiB offset" if MACH_STM32F0 || MACH_STM32F1
     config STM32_APP_START_1000
-        bool "4KiB offset"
+        bool "4KiB offset" if MACH_STM32F0 || MACH_STM32F1
 endchoice
 
 config APPLICATION_START
     hex
+    default 0x8008000 if STM32_APP_START_8000
+    default 0x8004000 if STM32_APP_START_4000
     default 0x8002000 if STM32_APP_START_2000
     default 0x8001000 if STM32_APP_START_1000
     default 0x8008000
