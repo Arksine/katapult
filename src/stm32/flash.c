@@ -10,23 +10,6 @@
 #include "flash.h" // flash_write_block
 #include "internal.h" // FLASH
 
-#if CONFIG_MACH_STM32F2 || CONFIG_MACH_STM32F4
-#define FLASH_KEY1 (0x45670123UL)
-#define FLASH_KEY2 (0xCDEF89ABUL)
-
-// Return the flash sector index for the page at the given address
-static uint32_t
-stm32f4_sector_index(uint32_t addr)
-{
-    if (addr < 0x08010000)
-        return (addr - 0x08000000) / (16 * 1024);
-    else if (addr < 0x08020000)
-        return 4;
-    else
-        return 5 + (addr - 0x08020000) / (128 * 1024);
-}
-#endif
-
 // Return the flash page size at the given address
 static uint32_t
 flash_get_page_size(uint32_t addr)
@@ -71,6 +54,11 @@ wait_flash(void)
         ;
 }
 
+#ifndef FLASH_KEY1 // Some stm32 headers don't define this
+#define FLASH_KEY1 (0x45670123UL)
+#define FLASH_KEY2 (0xCDEF89ABUL)
+#endif
+
 // Issue low-level flash hardware unlock sequence
 static void
 unlock_flash(void)
@@ -95,8 +83,16 @@ static void
 erase_page(uint32_t page_address)
 {
 #if CONFIG_MACH_STM32F2 || CONFIG_MACH_STM32F4
+    uint32_t sidx;
+    if (page_address < 0x08010000)
+        sidx = (page_address - 0x08000000) / (16 * 1024);
+    else if (page_address < 0x08020000)
+        sidx = 4;
+    else
+        sidx = 5 + (page_address - 0x08020000) / (128 * 1024);
+    sidx = sidx > 0x0f ? 0x0f : sidx;
     FLASH->CR = (FLASH_CR_PSIZE_1 | FLASH_CR_STRT | FLASH_CR_SER
-                 | ((stm32f4_sector_index(page_address) & 0xF) << 3));
+                 | (sidx << FLASH_CR_SNB_Pos));
 #else
     FLASH->CR = FLASH_CR_PER;
     FLASH->AR = page_address;
