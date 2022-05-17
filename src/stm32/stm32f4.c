@@ -8,6 +8,7 @@
 #include "board/armcm_boot.h" // VectorTable
 #include "board/irq.h" // irq_disable
 #include "board/usb_cdc.h" // usb_request_bootloader
+#include "command.h" // DECL_CONSTANT_STR
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
 
@@ -54,6 +55,10 @@ gpio_clock_enable(GPIO_TypeDef *regs)
     RCC->AHB1ENR |= 1 << rcc_pos;
     RCC->AHB1ENR;
 }
+
+#if !CONFIG_STM32_CLOCK_REF_INTERNAL
+DECL_CONSTANT_STR("RESERVE_PINS_crystal", "PH0,PH1");
+#endif
 
 // Clock configuration
 static void
@@ -158,7 +163,7 @@ clock_setup(void)
     // Configure and enable PLL
     if (CONFIG_MACH_STM32F207)
         enable_clock_stm32f20x();
-    else if (CONFIG_MACH_STM32F4x5)
+    else if (CONFIG_MACH_STM32F401 || CONFIG_MACH_STM32F4x5)
         enable_clock_stm32f40x();
     else
         enable_clock_stm32f446();
