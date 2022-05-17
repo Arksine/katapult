@@ -123,7 +123,7 @@ write_block(uint32_t block_address, uint32_t *data)
 #endif
 }
 
-static uint32_t write_count;
+static uint32_t page_write_count;
 
 // Main block write interface
 int
@@ -148,6 +148,7 @@ flash_write_block(uint32_t block_address, uint32_t *data)
         } else {
             need_erase = 1;
         }
+        page_write_count++;
     } else {
         if (!check_erased(block_address, CONFIG_BLOCK_SIZE)) {
             if (memcmp(data, (void*)block_address, CONFIG_BLOCK_SIZE) == 0)
@@ -174,7 +175,6 @@ flash_write_block(uint32_t block_address, uint32_t *data)
         // Failed to write to flash?!
         return -3;
 
-    write_count++;
     return 0;
 }
 
@@ -182,5 +182,5 @@ flash_write_block(uint32_t block_address, uint32_t *data)
 int
 flash_complete(void)
 {
-    return write_count;
+    return page_write_count;
 }
