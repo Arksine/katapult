@@ -47,7 +47,7 @@ config RAM_START
 
 config RAM_SIZE
     hex
-    default 0x7fe0 # (0x8000 - 32) - top 32 bytes used by IAP functions
+    default 0x7f20 # (0x8000 - 224) places stack end at a location not used by boot rom
 
 config STACK_SIZE
     int
