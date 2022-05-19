@@ -65,7 +65,7 @@ start_application(void)
 {
     set_bootup_code(0);
     uint32_t *vtor = (void*)CONFIG_APPLICATION_START;
-#if __VTOR_PRESENT
+#if __CORTEX_M > 0 || __VTOR_PRESENT
     SCB->VTOR = (uint32_t)vtor;
 #endif
     asm volatile("MSR msp, %0\n    bx %1" : : "r"(vtor[0]), "r"(vtor[1]));
