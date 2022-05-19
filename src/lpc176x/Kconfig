@@ -47,7 +47,7 @@ config RAM_START
 
 config RAM_SIZE
     hex
-    default 0x7f20 # (0x8000 - 224) places stack end at a location not used by boot rom
+    default 0x7ee0 # (0x8000 - 256 - 32) 32 bytes for ISP commands, 256 bytes for ISP stack
 
 config STACK_SIZE
     int
