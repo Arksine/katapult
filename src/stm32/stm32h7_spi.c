@@ -111,13 +111,26 @@ spi_setup(uint32_t bus, uint8_t mode, uint32_t rate)
 }
 
 void
+spi_set_rate(struct spi_config *config, uint32_t rate)
+{
+    SPI_TypeDef *spi = config->spi;
+    uint32_t pclk = get_pclock_frequency((uint32_t)spi);
+    uint32_t div = 0;
+    while ((pclk >> (div + 1)) > rate && div < 7)
+        div++;
+    spi->CFG1 = (div << SPI_CFG1_MBR_Pos) | (7 << SPI_CFG1_DSIZE_Pos);
+    CLEAR_BIT(spi->CFG1, SPI_CFG1_CRCSIZE);
+}
+
+
+void
 spi_prepare(struct spi_config config)
 {
 }
 
 void
 spi_transfer(struct spi_config config, uint8_t receive_data,
-             uint8_t len, uint8_t *data)
+             uint16_t len, uint8_t *data)
 {
     uint8_t rdata = 0;
     SPI_TypeDef *spi = config.spi;
