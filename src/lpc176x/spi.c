@@ -46,6 +46,16 @@ spi_init(uint32_t bus)
     spi->CR1 = 1<<1;
 }
 
+void
+spi_set_rate(struct spi_config *config, uint32_t rate)
+{
+    config->cr0 &= 0xFF;
+    uint32_t pclk = get_pclock_frequency(spi_bus[config->bus].pclk);
+    uint32_t div = DIV_ROUND_UP(pclk/4, rate) << 1;
+    config->cpsr = div < 2 ? 2 : (div > 254 ? 254 : div);
+
+}
+
 struct spi_config
 spi_setup(uint32_t bus, uint8_t mode, uint32_t rate)
 {
@@ -54,10 +64,9 @@ spi_setup(uint32_t bus, uint8_t mode, uint32_t rate)
 
     // Setup clock rate and mode
     struct spi_config res = {spi_bus[bus].spi, 0, 0};
-    uint32_t pclk = get_pclock_frequency(spi_bus[bus].pclk);
-    uint32_t div = DIV_ROUND_UP(pclk/2, rate) << 1;
-    res.cpsr = div < 2 ? 2 : (div > 254 ? 254 : div);
-    res.cr0 = 0x07 | ((mode & 2) << 5) | ((mode & 1) << 7);
+    res.cr0 = 0x07 | ((mode & 2) << 5) | ((mode & 1) << 7) | (1 << 8);
+    res.bus = bus;
+    spi_set_rate(&res, rate);
 
     return res;
 }
@@ -72,7 +81,7 @@ spi_prepare(struct spi_config config)
 
 void
 spi_transfer(struct spi_config config, uint8_t receive_data
-             , uint8_t len, uint8_t *data)
+             , uint16_t len, uint8_t *data)
 {
     LPC_SSP_TypeDef *spi = config.spi;
     if (receive_data) {

@@ -80,7 +80,7 @@ spi_setup(uint32_t bus, uint8_t mode, uint32_t rate)
 
     uint32_t pclk = get_pclock_frequency(spi_bus[bus].pclk);
 
-    struct spi_config res = {spi_bus[bus].spi, 0, 0};
+    struct spi_config res = {spi_bus[bus].spi, 0, 0, pclk};
 
     uint8_t prescale;
     for (prescale = 2; prescale <= 254; prescale += 2) {
@@ -107,6 +107,26 @@ spi_setup(uint32_t bus, uint8_t mode, uint32_t rate)
 }
 
 void
+spi_set_rate(struct spi_config *config, uint32_t rate)
+{
+    uint32_t pclk = config->pclk;
+    uint8_t prescale;
+    for (prescale = 2; prescale <= 254; prescale += 2) {
+        if (pclk < (prescale + 2) * 256 * rate)
+            break;
+    }
+
+    uint8_t postdiv;
+    for (postdiv = 255; postdiv > 0; --postdiv) {
+        if ((pclk / (prescale * postdiv)) > rate)
+            break;
+    }
+    config->cr0 &= ~SPI_SSPCR0_SCR_BITS;
+    config->cr0 |= postdiv << SPI_SSPCR0_SCR_LSB;
+    config->cpsr = prescale;
+}
+
+void
 spi_prepare(struct spi_config config)
 {
     spi_hw_t *spi = config.spi;
@@ -120,7 +140,7 @@ spi_prepare(struct spi_config config)
 
 void
 spi_transfer(struct spi_config config, uint8_t receive_data,
-             uint8_t len, uint8_t *data)
+             uint16_t len, uint8_t *data)
 {
     spi_hw_t *spi = config.spi;
     while (len--) {
