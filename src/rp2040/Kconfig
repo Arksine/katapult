@@ -57,17 +57,66 @@ config STACK_SIZE
     int
     default 512
 
-config FLASH_START
-    hex
-    default 0x10000000
+######################################################################
+# SD Card Configuration
+######################################################################
 
-config LAUNCH_APP_ADDRESS
-    default 0x10004000
-    hex
+menu "SD Card Configuration"
 
-config BLOCK_SIZE
-    int
-    default 64
+choice
+    default RPXXXX_SD_DISABLED
+    prompt "SD Card Interface"
+    config RPXXXX_SD_DISABLED
+        bool "SD Card Disabled"
+    config RPXXXX_SD_SPI0_GPIO_0_3_2
+        bool "spi0 (on gpio0,gpio3,gpio2)"
+        select SDCARD_SPI
+    config RPXXXX_SD_SPI0_GPIO_4_7_6
+        bool "spi0 (on gpio4,gpio7,gpio6)"
+        select SDCARD_SPI
+    config RPXXXX_SD_SPI0_GPIO_16_19_18
+        bool "spi0 (on gpio16,gpio19,gpio18)"
+        select SDCARD_SPI
+    config RPXXXX_SD_SPI0_GPIO_20_23_22
+        bool "spi0 (on gpio20,gpio23,gpio22)"
+        select SDCARD_SPI
+    config RPXXXX_SD_SPI0_GPIO_4_3_2
+        bool "spi0 (on gpio4,gpio3,gpio2)"
+        select SDCARD_SPI
+    config RPXXXX_SD_SPI1_GPIO_8_11_10
+        bool "spi1 (on gpio8,gpio11,gpio10)"
+        select SDCARD_SPI
+    config RPXXXX_SD_SPI1_GPIO_12_15_14
+        bool "spi1 (on gpio12,gpio15,gpio14)"
+        select SDCARD_SPI
+    config RPXXXX_SD_SPI1_GPIO_24_27_26
+        bool "spi1 (on gpio24,gpio27,gpio26)"
+        select SDCARD_SPI
+    config RPXXXX_SOFTWARE_SPI
+        bool "Software SPI"
+        select SDCARD_SOFTWARE_SPI
+endchoice
+
+config SOFTWARE_SPI_PINS
+    depends on SDCARD_SOFTWARE_SPI
+    string "SD Card Software SPI Pins (MISO,MOSI,SCLK)"
+config SD_SPI_CS_PIN
+    depends on SDCARD_SPI || SDCARD_SOFTWARE_SPI
+    string "SD Card SPI CS Pin"
+
+endmenu
+
+config SD_SPI_BUS_NAME
+    string
+    default "spi0_gpio0_gpio3_gpio2" if RPXXXX_SD_SPI0_GPIO_0_3_2
+    default "spi0_gpio4_gpio7_gpio6" if RPXXXX_SD_SPI0_GPIO_4_7_6
+    default "spi0_gpio16_gpio19_gpio18" if RPXXXX_SD_SPI0_GPIO_16_19_18
+    default "spi0_gpio20_gpio23_gpio22" if RPXXXX_SD_SPI0_GPIO_20_23_22
+    default "spi0_gpio4_gpio3_gpio2" if RPXXXX_SD_SPI0_GPIO_4_3_2
+    default "spi1_gpio8_gpio11_gpio10" if RPXXXX_SD_SPI1_GPIO_8_11_10
+    default "spi1_gpio12_gpio15_gpio14" if RPXXXX_SD_SPI1_GPIO_12_15_14
+    default "spi1_gpio24_gpio27_gpio26" if RPXXXX_SD_SPI1_GPIO_24_27_26
+    default "disabled"
 
 ######################################################################
 # Bootloader options
@@ -109,10 +158,13 @@ choice
         depends on MACH_RP2040
     config RPXXXX_FLASH_START_4000
         bool "16KiB bootloader"
+    config RPXXXX_FLASH_START_8000
+        bool "32KiB bootloader"
 endchoice
 config FLASH_APPLICATION_ADDRESS
     hex
     default 0x10004000 if RPXXXX_FLASH_START_4000
+    default 0x10008000 if RPXXXX_FLASH_START_8000
     default 0x10000100 if RPXXXX_FLASH_START_0100
     default 0x10000000 if RPXXXX_FLASH_START_0000
 
@@ -166,5 +218,31 @@ config RPXXXX_CANBUS_GPIO_TX
     int "CAN TX gpio number" if CANBUS
     default 5
     range 0 29
+
+######################################################################
+# Flash settings
+######################################################################
+
+config FLASH_START
+    hex
+    default 0x10000000
+
+choice
+    prompt "Application start offset"
+    config RPXXXX_APP_START_4000
+        bool "16KiB offset"
+    config RPXXXX_APP_START_8000
+        bool "32KiB offset"
+endchoice
+
+config LAUNCH_APP_ADDRESS
+    default 0x10004000 if RPXXXX_APP_START_4000
+    default 0x10008000 if RPXXXX_APP_START_8000
+    default 0x10004000
+    hex
+
+config BLOCK_SIZE
+    int
+    default 64
 
 endif

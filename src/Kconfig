@@ -8,6 +8,19 @@ config LOW_LEVEL_OPTIONS
     bool
     default y
 
+config SDCARD_SPI
+    bool
+
+config SDCARD_SOFTWARE_SPI
+    bool
+
+config SDCARD_SDIO
+    bool
+
+config SD_FIRMWARE_NAME
+    string
+    default "firmware.bin"
+
 choice
     prompt "Micro-controller Architecture"
     config MACH_LPC176X
@@ -115,12 +128,21 @@ config BUILD_DEPLOYER
     default y if FLASH_APPLICATION_ADDRESS != FLASH_BOOT_ADDRESS
     default n
 
+config ENABLE_SDCARD
+    bool
+    default y if SDCARD_SPI || SDCARD_SOFTWARE_SPI || SDCARD_SDIO
+    default n
+
 # The HAVE_x options allow boards to disable support for some commands
 # if the hardware does not support the feature.
 config HAVE_CHIPID
     bool
     default n
 config HAVE_BOARD_CHECK_DOUBLE_RESET
+    bool
+    default n
+
+config HAVE_GPIO_SPI
     bool
     default n
 

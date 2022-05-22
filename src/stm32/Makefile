@@ -64,6 +64,11 @@ canbus-src-y := generic/canserial.c ../lib/fast-hash/fasthash.c
 canbus-src-$(CONFIG_HAVE_STM32_CANBUS) += stm32/can.c
 canbus-src-$(CONFIG_HAVE_STM32_FDCANBUS) += stm32/fdcan.c
 src-$(CONFIG_CANSERIAL) += $(canbus-src-y) generic/canbus.c stm32/chipid.c
+spi-src-y := stm32/spi.c
+spi-src-$(CONFIG_MACH_STM32H7) := stm32/stm32h7_spi.c
+src-$(CONFIG_SDCARD_SPI) += $(spi-src-y)
+src-$(CONFIG_SDCARD_SDIO) += stm32/sdio.c
+
 
 # Flash rules
 flash: $(OUT)katapult.bin

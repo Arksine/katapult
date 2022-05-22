@@ -57,6 +57,43 @@ config STACK_SIZE
     int
     default 512
 
+######################################################################
+# SD Card Configuration
+######################################################################
+
+menu "SD Card Configuration"
+
+choice
+    depends on HAVE_GPIO_SPI
+    default LPC_SD_DISABLED
+    prompt "SD Card Interface"
+    config LPC_SD_DISABLED
+        bool "SD Card Disabled"
+    config LPC_SD_SPI_SSP0
+        bool "SSP0 (on P0.17/P0.18/P0.15)"
+        select SDCARD_SPI
+    config LPC_SD_SPI_SSP1
+        bool "SSP1 (on P0.8/P0.9/P0.7)"
+        select SDCARD_SPI
+    config LPC_SOFTWARE_SPI
+        bool "Software SPI"
+        select SDCARD_SOFTWARE_SPI
+endchoice
+
+config SOFTWARE_SPI_PINS
+    depends on SDCARD_SOFTWARE_SPI
+    string "SD Card Software SPI Pins (MISO,MOSI,SCLK)"
+config SD_SPI_CS_PIN
+    depends on SDCARD_SPI || SDCARD_SOFTWARE_SPI
+    string "SD Card SPI CS Pin"
+
+endmenu
+
+config SD_SPI_BUS_NAME
+    string
+    default "ssp0" if LPC_SD_SPI_SSP0
+    default "ssp1" if LPC_SD_SPI_SSP1
+    default "disabled"
 
 ######################################################################
 # Bootloader
