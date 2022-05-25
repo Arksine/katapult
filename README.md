@@ -87,7 +87,7 @@ configured an alternative method of entry.
    Before flashing, make sure pyserial is installed.  This step only needs to
    be performed once:
    ```
-   pip install serial
+   pip3 install pyserial
    ```
    ```
    python3 flash_can.py -d <serial device> -b <baud_rate>
