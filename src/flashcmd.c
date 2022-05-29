@@ -42,12 +42,18 @@ static uint8_t complete;
 static uint32_t complete_endtime;
 
 void
+set_complete(void)
+{
+    complete = 1;
+    complete_endtime = timer_read_time() + timer_from_us(100000);
+}
+
+void
 command_complete(uint32_t *data)
 {
     uint32_t out[3];
     command_respond_ack(CMD_COMPLETE, out, ARRAY_SIZE(out));
-    complete = 1;
-    complete_endtime = timer_read_time() + timer_from_us(100000);
+    set_complete();
 }
 
 void
@@ -64,6 +70,13 @@ DECL_TASK(complete_task);
  ****************************************************************/
 
 static uint8_t is_in_transfer;
+
+void
+set_in_transfer(uint8_t in_transfer)
+{
+    is_in_transfer = in_transfer;
+}
+
 
 int
 flashcmd_is_in_transfer(void)
