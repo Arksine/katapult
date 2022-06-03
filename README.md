@@ -1,15 +1,16 @@
 # CanBoot
- Bootloader for STM32F0/1 MCUs
+ Bootloader for ARM Cortex-M MCUs
 
- This bootloader is designed for CAN nodes to be used with
+ This bootloader was initially designed for CAN nodes to be used with
  [Klipper](https://github.com/Klipper3d/klipper).  The bootloader
  itself makes use of Klipper's hardware abstraction layer, stripped
- down to keep the footprint minimal.  Currently the bootloader
- reserves 8 KiB of space.
+ down to keep the footprint minimal. In addition to CAN, CanBoot now
+ supports USB and UART interfaces.
 
-In addition to CANBUS, CanBoot now supports USB and UART interfaces.
+Currently lpc176x and stm32 MCUs are supported.  CAN support is currently
+limited to stm32 F-series devices.
 
-Currently STM32F103, STM32F042, and STM32F072 boards are supported.
+CanBoot is licensed under the [GNU GPL v3](/LICENSE).
 
 ## Building
 
@@ -23,8 +24,8 @@ make
 ```
 
 The menuconfig will present the following options:
-- `Processor model`: Currently STM32F042, STMF072, and STM32F103 models are
- supported.
+- `Microcontroller Architecture`: Choose between lpc176x and ST
+- `Processor model`: Options depend on the chosen architecture
 - `Disable SWD at startup`:  This is an option for GigaDevice STM32F103
   clones.  Note that this is untested for the bootloader, GigaDevice clones
   may not work as expected.
