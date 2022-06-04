@@ -10,6 +10,14 @@
 #include "byteorder.h" // cpu_to_le32
 #include "command.h" // send_ack
 
+static uint8_t command_enable = 1;
+
+void
+command_set_enable(uint8_t state)
+{
+    command_enable = state;
+}
+
 uint_fast8_t
 command_encode_and_frame(uint8_t *buf, const struct command_encoder *ce
                          , va_list args)
@@ -52,6 +60,13 @@ command_respond_nack(void)
     command_respond(out, RESPONSE_NACK, ARRAY_SIZE(out));
 }
 
+static void
+command_respond_busy(void)
+{
+    uint32_t out[2];
+    command_respond(out, RESPONSE_COMMAND_BUSY, ARRAY_SIZE(out));
+}
+
 int
 command_get_arg_count(uint32_t *data)
 {
@@ -62,6 +77,12 @@ command_get_arg_count(uint32_t *data)
 void
 command_dispatch(uint8_t *buf, uint_fast8_t msglen)
 {
+    if (CONFIG_ENABLE_SDCARD) {
+        if (!command_enable) {
+            command_respond_busy();
+            return;
+        }
+    }
     uint32_t data[DIV_ROUND_UP(MESSAGE_MAX, 4)];
     memcpy(data, buf, msglen);
     uint32_t cmd = (le32_to_cpu(data[0]) >> 16) & 0xff;
