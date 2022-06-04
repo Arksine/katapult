@@ -30,7 +30,7 @@ config SERIAL_BAUD
 config USB_VENDOR_ID
     default 0x1d50
 config USB_DEVICE_ID
-    default 0x614e
+    default 0x6177
 config USB_SERIAL_NUMBER_CHIPID
     depends on HAVE_CHIPID
     default y
