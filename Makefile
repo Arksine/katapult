@@ -31,7 +31,7 @@ cc-option=$(shell if test -z "`$(1) $(2) -S -o /dev/null -xc /dev/null 2>&1`" \
 
 CFLAGS := -I$(OUT) -Isrc -I$(OUT)board-generic/ -std=gnu11 -Os -MD \
     -Wall -Wold-style-definition $(call cc-option,$(CC),-Wtype-limits,) \
-    -ffunction-sections -fdata-sections
+    -ffunction-sections -fdata-sections -fno-delete-null-pointer-checks
 CFLAGS += -flto -fwhole-program -fno-use-linker-plugin -ggdb3
 
 OBJS_canboot.elf = $(patsubst %.c, $(OUT)src/%.o,$(src-y))
