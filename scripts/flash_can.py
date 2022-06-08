@@ -520,7 +520,13 @@ class SerialSocket:
     async def run(self, intf: str, baud: int, fw_path: pathlib.Path) -> None:
         if not fw_path.is_file():
             raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
-        import serial
+        try:
+            import serial
+        except ModuleNotFoundError:
+            raise FlashCanError(
+                "The pyserial python package was not found.  To install "
+                "run the following command in a terminal: \n\n"
+                "   pip3 install pyserial\n\n")
         self.serial_error = serial.SerialException
         try:
             serial_dev = serial.Serial(baudrate=baud, timeout=0,
