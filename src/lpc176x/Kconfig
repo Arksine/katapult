@@ -57,10 +57,6 @@ config FLASH_START
     hex
     default 0x0000
 
-config USBSERIAL
-    bool
-config SERIAL
-    bool
 choice
     prompt "Communication interface"
     config LPC_USB
