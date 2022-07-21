@@ -19,6 +19,9 @@ extern uint32_t _data_start, _data_end, _data_flash;
 extern uint32_t _bss_start, _bss_end, _stack_start;
 extern uint32_t _stack_end;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored  "-Warray-bounds"
+
 uint64_t
 get_bootup_code(void)
 {
@@ -33,6 +36,8 @@ set_bootup_code(uint64_t code)
     *req_code = code;
     barrier();
 }
+
+#pragma GCC diagnostic pop
 
 // Helper function to read area of flash
 void
