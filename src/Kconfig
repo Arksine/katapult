@@ -1,6 +1,8 @@
 # Main Kconfig settings
 
-mainmenu "CanBoot Configuration"
+VERSION := $(shell, git describe --tags --long --always --dirty 2> /dev/null)
+
+mainmenu "CanBoot Configuration $(VERSION)"
 
 config LOW_LEVEL_OPTIONS
     bool
