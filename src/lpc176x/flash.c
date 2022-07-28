@@ -19,7 +19,7 @@
 typedef void (*IAP)(uint32_t *, uint32_t *);
 
 static uint8_t iap_buf[IAP_BUF_MIN_SIZE] __aligned(4);
-static uint32_t next_address = CONFIG_APPLICATION_START;
+static uint32_t next_address;
 static uint32_t page_write_count;
 
 // Return the flash sector index for the page at the given address
@@ -131,9 +131,12 @@ flash_write_block(uint32_t block_address, uint32_t *data)
         // Not a block aligned address
         return -1;
     if (CONFIG_BLOCK_SIZE < IAP_BUF_MIN_SIZE) {
-        if (block_address != next_address)
-            // out of order request
-            return -2;
+        if (block_address != next_address) {
+            if ((block_address | next_address) & (IAP_BUF_MIN_SIZE - 1))
+                // out of order request
+                return -2;
+            next_address = block_address;
+        }
         uint32_t buf_idx = block_address & (IAP_BUF_MIN_SIZE - 1);
         memcpy(&iap_buf[buf_idx], data, CONFIG_BLOCK_SIZE);
         if (buf_idx == IAP_BUF_MIN_SIZE - CONFIG_BLOCK_SIZE) {
