@@ -26,7 +26,7 @@ $(OUT)canboot.elf: $(OUT)src/generic/armcm_link.ld
 
 # Add source files
 src-y += stm32/gpio.c stm32/flash.c stm32/clockline.c
-src-y += generic/armcm_boot.c generic/armcm_irq.c generic/crc16_ccitt.c
+src-y += generic/armcm_canboot.c generic/armcm_irq.c generic/crc16_ccitt.c
 src-$(CONFIG_MACH_STM32F0) += ../lib/stm32f0/system_stm32f0xx.c
 src-$(CONFIG_MACH_STM32F0) += stm32/stm32f0.c stm32/stm32f0_timer.c
 src-$(CONFIG_MACH_STM32F0) += stm32/gpioperiph.c
