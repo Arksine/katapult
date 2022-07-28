@@ -4,7 +4,7 @@
 # Copyright (C) 2022  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import sys, argparse
+import sys, argparse, struct
 
 ERR_MSG = """
 The CanBoot binary is too large for the configured APPLICATION_START.
@@ -13,10 +13,18 @@ Rerun "make menuconfig" and either increase the APPLICATION_START or
 disable features to reduce the final binary size.
 """
 
+def update_lpc176x_checksum(data):
+    data28 = data[:28]
+    words = struct.unpack('<IIIIIII', data28)
+    csum = (-sum(words)) & 0xffffffff
+    return data28 + struct.pack('<I', csum) + data[32:]
+
 def main():
     parser = argparse.ArgumentParser(description="Build CanBoot binary")
     parser.add_argument("-b", "--base", help="Address of flash start")
     parser.add_argument("-s", "--start", help="Address of application start")
+    parser.add_argument("-l", "--lpc176x", action='store_true',
+                        help="Perform lpc176x checksum")
     parser.add_argument("input_file", help="Raw binary filename")
     parser.add_argument("output_file", help="Final binary filename")
     args = parser.parse_args()
@@ -33,6 +41,9 @@ def main():
         msg = "\nMaximum size %d. Current size %d.\n\n" % (max_size, len(data))
         sys.stderr.write(ERR_MSG + msg)
         sys.exit(-1)
+
+    if args.lpc176x:
+        data = update_lpc176x_checksum(data)
 
     f = open(args.output_file, 'wb')
     f.write(data)

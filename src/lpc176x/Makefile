@@ -25,7 +25,7 @@ src-$(CONFIG_SERIAL) += lpc176x/serial.c generic/serial_irq.c
 # Build the additional bin output file
 target-y += $(OUT)canboot.bin
 
-$(OUT)canboot.bin: $(OUT)canboot.elf
+$(OUT)canboot.bin: $(OUT)canboot.elf ./scripts/buildbinary.py
 	@echo "  Creating hex file $@"
 	$(Q)$(OBJCOPY) -O binary $< $(OUT)canboot.work
-	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_APPLICATION_START) $(OUT)canboot.work $@
+	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_APPLICATION_START) -l $(OUT)canboot.work $@

@@ -61,7 +61,7 @@ src-$(CONFIG_CANSERIAL) += $(canbus-src-y) generic/canbus.c stm32/chipid.c
 # Binary output file rules
 target-y += $(OUT)canboot.bin
 
-$(OUT)canboot.bin: $(OUT)canboot.elf
+$(OUT)canboot.bin: $(OUT)canboot.elf ./scripts/buildbinary.py
 	@echo "  Creating hex file $@"
 	$(Q)$(OBJCOPY) -O binary $< $(OUT)canboot.work
 	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_APPLICATION_START) $(OUT)canboot.work $@
