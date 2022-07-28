@@ -138,6 +138,10 @@ config CLOCK_FREQ
     default 64000000 if MACH_STM32G0
     default 400000000 if MACH_STM32H7 # 400Mhz is max Klipper currently supports
 
+config FLASH_START
+    hex
+    default 0x8000000
+
 config FLASH_SIZE
     hex
     default 0x4000 if MACH_STM32F031
@@ -189,7 +193,9 @@ config STM32F103GD_DISABLE_SWD
 ######################################################################
 
 choice
-    prompt "Bootloader offset" if 0
+    prompt "Build CanBoot deployment application"
+    config STM32_FLASH_START_0000
+        bool "Do not build"
     config STM32_FLASH_START_2000
         bool "8KiB bootloader" if MACH_STM32F103 || MACH_STM32F070 || MACH_STM32G0 || MACH_STM32F0x2
     config STM32_FLASH_START_5000
@@ -209,21 +215,32 @@ choice
 
     config STM32_FLASH_START_800
         bool "2KiB bootloader (HID Bootloader)" if MACH_STM32F103
+    config STM32_FLASH_START_1000
+        bool "4KiB bootloader" if MACH_STM32F1 || MACH_STM32F0
     config STM32_FLASH_START_4000
         bool "16KiB bootloader (HID Bootloader)" if MACH_STM32F207 || MACH_STM32F401 || MACH_STM32F4x5 || MACH_STM32F103 || MACH_STM32F072
     config STM32_FLASH_START_20000
         bool "128KiB bootloader (SKR SE BX v2.0)" if MACH_STM32H743
-
-    config STM32_FLASH_START_0000
-        bool "No bootloader"
 endchoice
-config FLASH_START
+config DEPLOYER_START
     hex
-    default 0x8000000
+    default 0x8000800 if STM32_FLASH_START_800
+    default 0x8001000 if STM32_FLASH_START_1000
+    default 0x8002000 if STM32_FLASH_START_2000
+    default 0x8004000 if STM32_FLASH_START_4000
+    default 0x8005000 if STM32_FLASH_START_5000
+    default 0x8007000 if STM32_FLASH_START_7000
+    default 0x8008000 if STM32_FLASH_START_8000
+    default 0x8008800 if STM32_FLASH_START_8800
+    default 0x800C000 if STM32_FLASH_START_C000
+    default 0x8010000 if STM32_FLASH_START_10000
+    default 0x8020000 if STM32_FLASH_START_20000
+    default 0x8020200 if STM32_FLASH_START_20200
+    default 0
 
 config ARMCM_RAM_VECTORTABLE
     bool
-    default y if MACH_STM32F0 && FLASH_START != 0x8000000
+    default y if MACH_STM32F0 && DEPLOYER_START != 0
     default n
 
 
