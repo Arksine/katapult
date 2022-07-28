@@ -1,4 +1,4 @@
-// ARM Cortex-M vector table and initial bootup handling
+// CanBoot specific entry code for ARM Cortex-M vector table and bootup
 //
 // Copyright (C) 2019  Kevin O'Connor <kevin@koconnor.net>
 //
