@@ -9,6 +9,7 @@
 #include "autoconf.h" // CONFIG_MCU
 #include "board/internal.h" // SysTick
 #include "board/irq.h" // irq_disable
+#include "board/misc.h" // get_bootup_code
 #include "command.h" // DECL_CONSTANT_STR
 
 // Export MCU type
@@ -53,8 +54,6 @@ application_check_valid(void)
     uint32_t *app = (void*)CONFIG_APPLICATION_START;
     return *app != 0 && *app != 0xffffffff;
 }
-
-#define REQUEST_START_APP 0x7b06ec45a9a8243d
 
 // Jump to the main application (exiting the bootloader)
 void
@@ -102,8 +101,6 @@ reset_handler_stage_two(void)
     for (;;)
         ;
 }
-
-#define CANBOOT_SIGNATURE 0x21746f6f426e6143 // CanBoot!
 
 // Initial code entry point - invoked by the processor after a reset
 asm(".section .text.ResetHandler\n"
