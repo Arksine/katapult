@@ -8,6 +8,7 @@
 #include "board/armcm_boot.h" // armcm_main
 #include "board/irq.h" // irq_disable
 #include "command.h" // DECL_CONSTANT_STR
+#include "deployer.h" // deployer_is_active
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
 
@@ -131,6 +132,21 @@ hsi14_setup(void)
  * Startup
  ****************************************************************/
 
+// Copy vector table and remap ram so new vector table is used
+static void
+enable_ram_vectortable(void)
+{
+    // Symbols created by armcm_link.lds.S linker script
+    extern uint32_t _ram_vectortable_start, _ram_vectortable_end;
+    extern uint32_t _text_vectortable_start;
+
+    uint32_t count = (&_ram_vectortable_end - &_ram_vectortable_start) * 4;
+    __builtin_memcpy(&_ram_vectortable_start, &_text_vectortable_start, count);
+    barrier();
+
+    SYSCFG->CFGR1 |= 3 << SYSCFG_CFGR1_MEM_MODE_Pos;
+}
+
 // Main entry point - called from armcm_boot.c:ResetHandler()
 void
 armcm_main(void)
@@ -138,6 +154,8 @@ armcm_main(void)
     SystemInit();
 
     enable_pclock(SYSCFG_BASE);
+    if (CONFIG_ARMCM_RAM_VECTORTABLE && deployer_is_active())
+        enable_ram_vectortable();
 
     // Set flash latency
     FLASH->ACR = (1 << FLASH_ACR_LATENCY_Pos) | FLASH_ACR_PRFTBE;

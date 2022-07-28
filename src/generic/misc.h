@@ -18,6 +18,8 @@ void application_read_flash(uint32_t address, uint32_t *dest);
 int application_check_valid(void);
 void application_jump(void);
 
+void try_request_canboot(void);
+
 void timer_setup(void);
 
 uint32_t timer_from_us(uint32_t us);

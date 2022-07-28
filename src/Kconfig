@@ -99,6 +99,11 @@ config STATUS_LED_PIN
     string "Status LED GPIO Pin"
     depends on ENABLE_LED
 
+config BUILD_DEPLOYER
+    bool
+    default y if DEPLOYER_START != 0
+    default n
+
 # The HAVE_x options allow boards to disable support for some commands
 # if the hardware does not support the feature.
 config HAVE_CHIPID

@@ -7,7 +7,15 @@
 #include "board/io.h" // readb
 #include "board/misc.h" // jump_to_application
 #include "bootentry.h" // bootentry_check
+#include "deployer.h" // deployer_is_active
 #include "sched.h" // sched_check_periodic
+
+// The main CanBoot code is running (not the deployer application)
+int
+deployer_is_active(void)
+{
+    return 0;
+}
 
 // Implement simple delay mechanism
 void

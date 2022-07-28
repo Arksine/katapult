@@ -57,6 +57,28 @@ config FLASH_START
     hex
     default 0x0000
 
+
+######################################################################
+# Bootloader
+######################################################################
+
+choice
+    prompt "Build CanBoot deployment application"
+    config LPC176X_FLASH_START_0000
+        bool "Do not build"
+    config LPC176X_FLASH_START_4000
+        bool "16KiB bootloader"
+endchoice
+config DEPLOYER_START
+    hex
+    default 0x4000 if LPC176X_FLASH_START_4000
+    default 0
+
+
+######################################################################
+# Communication inteface
+######################################################################
+
 choice
     prompt "Communication interface"
     config LPC_USB
@@ -69,6 +91,7 @@ choice
         bool "Serial (on UART3 P4.29/P4.28)" if LOW_LEVEL_OPTIONS
         select SERIAL
 endchoice
+
 
 ######################################################################
 # Flash settings

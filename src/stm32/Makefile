@@ -25,26 +25,27 @@ CFLAGS_canboot.elf += -T $(OUT)src/generic/armcm_link.ld
 $(OUT)canboot.elf: $(OUT)src/generic/armcm_link.ld
 
 # Add source files
-src-y += stm32/gpio.c stm32/flash.c stm32/clockline.c
-src-y += generic/armcm_canboot.c generic/armcm_irq.c generic/crc16_ccitt.c
-src-$(CONFIG_MACH_STM32F0) += ../lib/stm32f0/system_stm32f0xx.c
-src-$(CONFIG_MACH_STM32F0) += stm32/stm32f0.c stm32/stm32f0_timer.c
-src-$(CONFIG_MACH_STM32F0) += stm32/gpioperiph.c
+mcu-y = stm32/gpio.c stm32/flash.c stm32/clockline.c
+mcu-y += generic/armcm_irq.c generic/crc16_ccitt.c
+mcu-$(CONFIG_MACH_STM32F0) += ../lib/stm32f0/system_stm32f0xx.c
+mcu-$(CONFIG_MACH_STM32F0) += stm32/stm32f0.c stm32/stm32f0_timer.c
+mcu-$(CONFIG_MACH_STM32F0) += stm32/gpioperiph.c
 
-src-$(CONFIG_MACH_STM32F1) += ../lib/stm32f1/system_stm32f1xx.c
-src-$(CONFIG_MACH_STM32F1) += stm32/stm32f1.c generic/armcm_timer.c
+mcu-$(CONFIG_MACH_STM32F1) += ../lib/stm32f1/system_stm32f1xx.c
+mcu-$(CONFIG_MACH_STM32F1) += stm32/stm32f1.c generic/armcm_timer.c
 
-src-$(CONFIG_MACH_STM32F2) += ../lib/stm32f2/system_stm32f2xx.c
-src-$(CONFIG_MACH_STM32F2) += stm32/stm32f4.c generic/armcm_timer.c
-src-$(CONFIG_MACH_STM32F2) += stm32/gpioperiph.c
+mcu-$(CONFIG_MACH_STM32F2) += ../lib/stm32f2/system_stm32f2xx.c
+mcu-$(CONFIG_MACH_STM32F2) += stm32/stm32f4.c generic/armcm_timer.c
+mcu-$(CONFIG_MACH_STM32F2) += stm32/gpioperiph.c
 
-src-$(CONFIG_MACH_STM32F4) += ../lib/stm32f4/system_stm32f4xx.c
-src-$(CONFIG_MACH_STM32F4) += stm32/stm32f4.c generic/armcm_timer.c
-src-$(CONFIG_MACH_STM32F4) += stm32/gpioperiph.c
+mcu-$(CONFIG_MACH_STM32F4) += ../lib/stm32f4/system_stm32f4xx.c
+mcu-$(CONFIG_MACH_STM32F4) += stm32/stm32f4.c generic/armcm_timer.c
+mcu-$(CONFIG_MACH_STM32F4) += stm32/gpioperiph.c
 
-src-$(CONFIG_MACH_STM32G0) += stm32/stm32f0_timer.c
-src-$(CONFIG_MACH_STM32G0) += stm32/stm32g0.c stm32/gpioperiph.c
+mcu-$(CONFIG_MACH_STM32G0) += stm32/stm32f0_timer.c
+mcu-$(CONFIG_MACH_STM32G0) += stm32/stm32g0.c stm32/gpioperiph.c
 
+src-y += generic/armcm_canboot.c $(mcu-y)
 usb-src-$(CONFIG_HAVE_STM32_USBFS) := stm32/usbfs.c
 usb-src-$(CONFIG_HAVE_STM32_USBOTG) := stm32/usbotg.c
 src-$(CONFIG_USBSERIAL) += $(usb-src-y) stm32/chipid.c generic/usb_cdc.c
@@ -58,10 +59,8 @@ canbus-src-$(CONFIG_HAVE_STM32_CANBUS) += stm32/can.c
 canbus-src-$(CONFIG_HAVE_STM32_FDCANBUS) += stm32/fdcan.c
 src-$(CONFIG_CANSERIAL) += $(canbus-src-y) generic/canbus.c stm32/chipid.c
 
-# Binary output file rules
-target-y += $(OUT)canboot.bin
-
-$(OUT)canboot.bin: $(OUT)canboot.elf ./scripts/buildbinary.py
-	@echo "  Creating hex file $@"
-	$(Q)$(OBJCOPY) -O binary $< $(OUT)canboot.work
-	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_APPLICATION_START) $(OUT)canboot.work $@
+# Deployer build
+deployer-y += generic/armcm_boot.c generic/armcm_reset.c $(mcu-y)
+CFLAGS_deployer.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_deployer.elf += -T $(OUT)src/generic/armcm_deployer.ld
+$(OUT)deployer.elf: $(OUT)src/generic/armcm_deployer.ld
