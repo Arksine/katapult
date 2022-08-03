@@ -77,6 +77,10 @@ sched_main(void)
         halt();
     }
 
+    // Wait 100ms to help ensure power supply is stable before
+    // overwriting existing bootloader
+    udelay(100000);
+
     // Write CanBoot to flash
     const uint8_t *p = deployer_canboot_binary, *end = &p[cbsize];
     while (p < end) {
