@@ -28,18 +28,22 @@ check_button_pressed(void)
     return gpio_in_read(button) == button_high;
 }
 
+#define DOUBLE_CLICK_MIN_US 10000
+#define DOUBLE_CLICK_MAX_US 500000
+
 // Check for a bootloader request via double tap of reset button
 static void
 check_double_reset(void)
 {
     if (!CONFIG_ENABLE_DOUBLE_RESET)
         return;
-    // set request signature and delay for two seconds.  This enters the bootloader if
+    // Set request signature and delay - this enters the bootloader if
     // the reset button is double clicked
+    udelay(DOUBLE_CLICK_MIN_US);
     set_bootup_code(REQUEST_CANBOOT);
-    udelay(500000);
+    udelay(DOUBLE_CLICK_MAX_US - DOUBLE_CLICK_MIN_US);
+    // No reset, clear the bootup code
     set_bootup_code(0);
-    // No reset, read the key back out to clear it
 }
 
 // Check if bootloader or application should be started
