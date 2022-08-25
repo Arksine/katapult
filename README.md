@@ -26,6 +26,8 @@ make
 The menuconfig will present the following options:
 - `Microcontroller Architecture`: Choose between lpc176x and ST
 - `Processor model`: Options depend on the chosen architecture
+- `Build CanBoot deployment application`: See the [deployer](#canboot-deployer)
+   section below
 - `Disable SWD at startup`:  This is an option for GigaDevice STM32F103
   clones.  Note that this is untested for the bootloader, GigaDevice clones
   may not work as expected.
@@ -127,6 +129,26 @@ optional arguments:
 The `interface` option defaults to `can0` if omitted.  The `firmware` option
 defaults to `~/klipper/out/klipper.bin`.  The `uuid` must be specified unless
 the user is running a query with `-q`.
+
+## CanBoot Deployer
+
+The CanBoot deployer allows a user to overwrite their existing bootloader
+with CanBoot, allowing modification and updates without a programmer.  It
+is *strongly* recommended that an alternate recovery (programmer, DFU, etc)
+method is available in the event that something goes wrong during deployment.
+If coming from a stock bootloader it is also recommended that the user create
+a backup before proceeding.
+
+To build the deployer set the `Build CanBoot deployment application` option
+in the menuconfig to your existing bootloader offset.  The additional settings
+apply to the CanBoot binary, configure them just as you would without the
+deployer.  Save your settings and build with `make`.
+
+This will result in an additional binary in the `out` folder, `deployer.bin`.
+Flash `deployer.bin` with your existing bootloader (SD Card, HID, an older
+version of CanBoot, etc).  Once complete, the deployer should reset the
+device and enter CanBoot.  Now you are ready to use CanBoot to flash an
+application, such as Klipper.
 
 ## Notes
 - It is recommended to USB CAN device flashed with
