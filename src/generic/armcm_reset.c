@@ -12,7 +12,7 @@
 void
 try_request_canboot(void)
 {
-    uint32_t *bl_vectors = (uint32_t *)(CONFIG_FLASH_START & 0xFF000000);
+    uint32_t *bl_vectors = (uint32_t *)(CONFIG_BOOTLOADER_START);
     uint64_t *req_sig = (uint64_t *)bl_vectors[0];
     irq_disable();
     *req_sig = REQUEST_CANBOOT;
