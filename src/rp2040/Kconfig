@@ -48,7 +48,7 @@ config DEPLOYER_START
     hex
     default 0x10004000
 
-config RP2040_BOOTLOADER_START
+config BOOTLOADER_START
     hex
     default 0x10000100
 

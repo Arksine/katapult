@@ -142,6 +142,10 @@ config FLASH_START
     hex
     default 0x8000000
 
+config BOOTLOADER_START
+    hex
+    default 0x8000000
+
 config FLASH_SIZE
     hex
     default 0x4000 if MACH_STM32F031
