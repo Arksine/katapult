@@ -14,42 +14,6 @@
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
 
-
-/****************************************************************
- * watchdog handler
- ****************************************************************/
-
-void
-watchdog_reset(void)
-{
-    watchdog_hw->load = 0x800000; // ~350ms
-}
-DECL_TASK(watchdog_reset);
-
-void
-watchdog_init(void)
-{
-    watchdog_reset();
-    watchdog_hw->ctrl = (WATCHDOG_CTRL_PAUSE_DBG0_BITS
-                         | WATCHDOG_CTRL_PAUSE_DBG1_BITS
-                         | WATCHDOG_CTRL_PAUSE_JTAG_BITS
-                         | WATCHDOG_CTRL_ENABLE_BITS);
-}
-DECL_INIT(watchdog_init);
-
-
-/****************************************************************
- * Bootloader
- ****************************************************************/
-
-void
-bootloader_request(void)
-{
-    // Use the bootrom-provided code to reset into BOOTSEL mode
-    reset_to_usb_boot(0, 0);
-}
-
-
 /****************************************************************
  * Clock setup
  ****************************************************************/
@@ -163,6 +127,7 @@ clock_setup(void)
 
 // Main entry point - called from armcm_boot.c:ResetHandler()
 void
+noinline
 armcm_main(void)
 {
     clock_setup();

@@ -20,11 +20,9 @@ SECTIONS
     .text : {
         . = ALIGN(4);
         KEEP(*(.boot2))
-        _text_vectortable_start = .;
-        KEEP(*(.vector_table))
-        _text_vectortable_end = .;
-        *(.text .text.*)
-        *(.rodata .rodata*)
+        KEEP(*(.vector_table_flash))
+        KEEP(*(.reset_handler_flash))
+        KEEP(*(.reset_handler_flash.*))
     } > rom
 
     . = ALIGN(4);
@@ -32,8 +30,11 @@ SECTIONS
 
     .data : AT (_data_flash)
     {
-        . = ALIGN(4);
+        . = ALIGN(128);
         _data_start = .;
+        KEEP(*(.vector_table))
+        *(.text .text.*)
+        *(.rodata .rodata*)
         *(.ramfunc .ramfunc.*);
         *(.data .data.*);
         . = ALIGN(4);
@@ -50,7 +51,7 @@ SECTIONS
         _bss_end = .;
     } > ram
 
-    _stack_start = CONFIG_RAM_START + CONFIG_RAM_SIZE - CONFIG_STACK_SIZE ;
+    _stack_start = CONFIG_RAM_START + CONFIG_RAM_SIZE - CONFIG_STACK_SIZE - 1024;
     .stack _stack_start (NOLOAD) :
     {
         . = . + CONFIG_STACK_SIZE;
