@@ -4,11 +4,35 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "hardware/flash.h"
-#include "pico/bootrom.h"
+#include "hw_flash.h"
 
 #include "hardware/structs/ssi.h"
 #include "hardware/structs/ioqspi.h"
+
+#include "bootrom.h"
+
+#ifndef __noinline
+#define __noinline __attribute__((noinline))
+#endif
+#ifndef __force_inline
+#if defined(__GNUC__) && (__GNUC__ <= 6 || (__GNUC__ == 7 && (__GNUC_MINOR__ < 3 || !defined(__cplusplus))))
+#define __force_inline inline __always_inline
+#else
+#define __force_inline __always_inline
+#endif
+#endif
+#ifndef __STRING
+#define __STRING(x) #x
+#endif
+#define __not_in_flash(group) __attribute__((section(".ramfunc." group)))
+#define __not_in_flash_func(func_name) __not_in_flash(__STRING(func_name)) func_name
+#define __no_inline_not_in_flash_func(func_name) __noinline __not_in_flash_func(func_name)
+
+__force_inline static void __compiler_memory_barrier(void) {
+    __asm__ volatile ("" : : : "memory");
+}
+
+//#include "platform.h"
 
 #define FLASH_BLOCK_ERASE_CMD 0xd8
 
@@ -51,7 +75,7 @@ static void __no_inline_not_in_flash_func(flash_init_boot2_copyout)(void) {}
 static void __no_inline_not_in_flash_func(flash_enable_xip_via_boot2)(void) {
     // Set up XIP for 03h read on bus access (slow but generic)
     rom_flash_enter_cmd_xip_fn flash_enter_cmd_xip = (rom_flash_enter_cmd_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_ENTER_CMD_XIP);
-    assert(flash_enter_cmd_xip);
+    //assert(flash_enter_cmd_xip);
     flash_enter_cmd_xip();
 }
 
@@ -62,15 +86,15 @@ static void __no_inline_not_in_flash_func(flash_enable_xip_via_boot2)(void) {
 
 void __no_inline_not_in_flash_func(flash_range_erase)(uint32_t flash_offs, size_t count) {
 #ifdef PICO_FLASH_SIZE_BYTES
-    hard_assert(flash_offs + count <= PICO_FLASH_SIZE_BYTES);
+//    hard_assert(flash_offs + count <= PICO_FLASH_SIZE_BYTES);
 #endif
-    invalid_params_if(FLASH, flash_offs & (FLASH_SECTOR_SIZE - 1));
-    invalid_params_if(FLASH, count & (FLASH_SECTOR_SIZE - 1));
+    //invalid_params_if(FLASH, flash_offs & (FLASH_SECTOR_SIZE - 1));
+    //invalid_params_if(FLASH, count & (FLASH_SECTOR_SIZE - 1));
     rom_connect_internal_flash_fn connect_internal_flash = (rom_connect_internal_flash_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
     rom_flash_exit_xip_fn flash_exit_xip = (rom_flash_exit_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_EXIT_XIP);
     rom_flash_range_erase_fn flash_range_erase = (rom_flash_range_erase_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_RANGE_ERASE);
     rom_flash_flush_cache_fn flash_flush_cache = (rom_flash_flush_cache_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_FLUSH_CACHE);
-    assert(connect_internal_flash && flash_exit_xip && flash_range_erase && flash_flush_cache);
+    //assert(connect_internal_flash && flash_exit_xip && flash_range_erase && flash_flush_cache);
     flash_init_boot2_copyout();
 
     // No flash accesses after this point
@@ -85,15 +109,15 @@ void __no_inline_not_in_flash_func(flash_range_erase)(uint32_t flash_offs, size_
 
 void __no_inline_not_in_flash_func(flash_range_program)(uint32_t flash_offs, const uint8_t *data, size_t count) {
 #ifdef PICO_FLASH_SIZE_BYTES
-    hard_assert(flash_offs + count <= PICO_FLASH_SIZE_BYTES);
+    //hard_assert(flash_offs + count <= PICO_FLASH_SIZE_BYTES);
 #endif
-    invalid_params_if(FLASH, flash_offs & (FLASH_PAGE_SIZE - 1));
-    invalid_params_if(FLASH, count & (FLASH_PAGE_SIZE - 1));
+    //invalid_params_if(FLASH, flash_offs & (FLASH_PAGE_SIZE - 1));
+    //invalid_params_if(FLASH, count & (FLASH_PAGE_SIZE - 1));
     rom_connect_internal_flash_fn connect_internal_flash = (rom_connect_internal_flash_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
     rom_flash_exit_xip_fn flash_exit_xip = (rom_flash_exit_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_EXIT_XIP);
     rom_flash_range_program_fn flash_range_program = (rom_flash_range_program_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_RANGE_PROGRAM);
     rom_flash_flush_cache_fn flash_flush_cache = (rom_flash_flush_cache_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_FLUSH_CACHE);
-    assert(connect_internal_flash && flash_exit_xip && flash_range_program && flash_flush_cache);
+    //assert(connect_internal_flash && flash_exit_xip && flash_range_program && flash_flush_cache);
     flash_init_boot2_copyout();
 
     __compiler_memory_barrier();
@@ -125,7 +149,7 @@ void __no_inline_not_in_flash_func(flash_do_cmd)(const uint8_t *txbuf, uint8_t *
     rom_connect_internal_flash_fn connect_internal_flash = (rom_connect_internal_flash_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
     rom_flash_exit_xip_fn flash_exit_xip = (rom_flash_exit_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_EXIT_XIP);
     rom_flash_flush_cache_fn flash_flush_cache = (rom_flash_flush_cache_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_FLUSH_CACHE);
-    assert(connect_internal_flash && flash_exit_xip && flash_flush_cache);
+    //assert(connect_internal_flash && flash_exit_xip && flash_flush_cache);
     flash_init_boot2_copyout();
     __compiler_memory_barrier();
     connect_internal_flash();
@@ -159,7 +183,7 @@ void __no_inline_not_in_flash_func(flash_do_cmd)(const uint8_t *txbuf, uint8_t *
 // Use standard RUID command to get a unique identifier for the flash (and
 // hence the board)
 
-static_assert(FLASH_UNIQUE_ID_SIZE_BYTES == FLASH_RUID_DATA_BYTES, "");
+//static_assert(FLASH_UNIQUE_ID_SIZE_BYTES == FLASH_RUID_DATA_BYTES, "");
 
 void flash_get_unique_id(uint8_t *id_out) {
 #if PICO_NO_FLASH

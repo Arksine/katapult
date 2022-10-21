@@ -7,8 +7,6 @@
 #ifndef _PLATFORM_BOOTROM_H
 #define _PLATFORM_BOOTROM_H
 
-#include "pico.h"
-
 /** \file bootrom.h
  * \defgroup pico_bootrom pico_bootrom
  * Access to functions and data in the RP2040 bootrom

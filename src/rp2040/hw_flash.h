@@ -7,7 +7,11 @@
 #ifndef _HARDWARE_FLASH_H
 #define _HARDWARE_FLASH_H
 
-#include "pico.h"
+//#include "pico.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+
 
 /** \file flash.h
  *  \defgroup hardware_flash hardware_flash
