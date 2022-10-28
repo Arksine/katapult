@@ -60,6 +60,15 @@ config BLOCK_SIZE
 # Bootloader options
 ######################################################################
 
+config RP2040_ADD_BOOT_SIGNATURE
+    bool
+    default y
+    help
+      Add boot signature (zero page at application start)
+      into resulting uf2.
+      This is used to force bootloader entry
+      before application is updated.
+
 choice
     prompt "Flash chip" if LOW_LEVEL_OPTIONS
     config RP2040_FLASH_W25Q080

@@ -45,6 +45,9 @@ $(OUT)lib/rp2040/elf2uf2/elf2uf2: lib/rp2040/elf2uf2/main.cpp
 $(OUT)canboot.uf2: $(OUT)canboot.elf $(OUT)lib/rp2040/elf2uf2/elf2uf2
 	@echo "  Creating uf2 file $@"
 	$(Q)$(OUT)lib/rp2040/elf2uf2/elf2uf2 $(OUT)canboot.elf $(OUT)canboot.uf2
+ifeq ($(CONFIG_RP2040_ADD_BOOT_SIGNATURE), y)
+	$(Q)$(PYTHON) ./scripts/uf2_append_boot_signature.py --address $(CONFIG_APPLICATION_START) --input $(OUT)canboot.uf2 --output $(OUT)canboot.uf2
+endif
 
 lib/rp2040_flash/rp2040_flash:
 	@echo "  Building rp2040_flash"
