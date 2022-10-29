@@ -75,7 +75,7 @@ configured an alternative method of entry.
 3) Run the flash script:
    For CAN Devices:
    ```
-   cd ~/CanBoot
+   cd ~/CanBoot/scripts
    python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
    ```
    Replace <uuid> with the appropriate uuid for your can device.  If
