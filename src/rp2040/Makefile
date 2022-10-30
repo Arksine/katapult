@@ -3,16 +3,16 @@
 # Setup the toolchain
 CROSS_PREFIX=arm-none-eabi-
 
-dirs-y += src/rp2040 src/generic lib/rp2040/elf2uf2 lib/fast-hash lib/can2040
+dirs-y += src/rp2040 src/generic lib/rp2040/elf2uf2 lib/fast-hash lib/can2040 lib/rp2040/pico/flash/
 
 CFLAGS += -mcpu=cortex-m0plus -mthumb -Ilib/cmsis-core
-CFLAGS += -Ilib/rp2040 -Ilib/rp2040/cmsis_include -Ilib/fast-hash -Ilib/can2040
+CFLAGS += -Ilib/rp2040 -Ilib/rp2040/cmsis_include -Ilib/fast-hash -Ilib/can2040 -Ilib/rp2040/pico/flash/ -Ilib/rp2040/pico/bootrom/
 
 CFLAGS_canboot.elf += --specs=nano.specs --specs=nosys.specs
 CFLAGS_canboot.elf += -T $(OUT)src/rp2040/rp2040_link.ld
 
 # Add source files
-mcu-y  = rp2040/main.c rp2040/gpio.c rp2040/timer.c rp2040/flash.c  rp2040/hw_flash.c
+mcu-y  = rp2040/main.c rp2040/gpio.c rp2040/timer.c rp2040/flash.c  ../lib/rp2040/pico/flash/hw_flash.c
 mcu-y += generic/armcm_irq.c generic/crc16_ccitt.c
 
 src-y += rp2040/armcm_canboot.c $(mcu-y)
@@ -56,7 +56,7 @@ lib/rp2040_flash/rp2040_flash:
 # Flash rules
 flash: $(OUT)canboot.uf2 lib/rp2040_flash/rp2040_flash
 	@echo "  Flashing $< "
-	$(Q)./lib/rp2040_flash/rp2040_flash $(OUT)canboot.uf2
+	$(Q) $(if $(NOSUDO),,sudo) ./lib/rp2040_flash/rp2040_flash $(OUT)canboot.uf2
 
 # Deployer build
 deployer-y += generic/armcm_boot.c generic/armcm_reset.c $(mcu-y)

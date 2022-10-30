@@ -12,7 +12,6 @@ def renumerate(content):
        result.extend(block[ : 20])
        result.extend(struct.pack("<II", current, total))
        result.extend(block[ 28 : ])
-#      print("address " + hex(int.from_bytes(block[12:16], "little")))
     return result
 
 def add_signature(content, address):
@@ -42,7 +41,6 @@ def main():
     content = renumerate(content)
     with open(args.output, 'wb') as f:
        f.write(content)
-       f.close()
 
 if __name__ == '__main__':
     main()
