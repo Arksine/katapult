@@ -66,7 +66,8 @@ configured an alternative method of entry.
 
 ## Uploading Klipper
 1) Make sure the `klipper` service stopped.
-2) Build Klipper with CAN support and with the "8KiB" bootloader setting enabled.
+2) Build Klipper with CAN support and with the a bootloader offset matching that
+   of the "application offset" in CanBoot.
 3) Enter the bootloader.  This will occur automatically if no program is detected.
    If you built CanBoot with an alternative method of entry you may use that.
    If upgrading from a currently flashed version of Klipper the `flash_can.py`
@@ -75,7 +76,7 @@ configured an alternative method of entry.
 3) Run the flash script:
    For CAN Devices:
    ```
-   cd ~/CanBoot
+   cd ~/CanBoot/scripts
    python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
    ```
    Replace <uuid> with the appropriate uuid for your can device.  If
@@ -149,6 +150,24 @@ Flash `deployer.bin` with your existing bootloader (SD Card, HID, an older
 version of CanBoot, etc).  Once complete, the deployer should reset the
 device and enter CanBoot.  Now you are ready to use CanBoot to flash an
 application, such as Klipper.
+
+## Contributing
+
+CanBoot is effectively a fork of Klipper's MCU source.  As such, it is appropriate
+to retain similar contributing guidelines as Klipper.  Commits should be formatted
+as follows:
+
+```
+filename: brief description of commit
+
+More detailed explanation of the change if required.
+
+Signed-off-by: Your Name <your email address>
+```
+
+All commits must be signed off with a real name and email address indicating
+acceptance of the
+[developer certificate of origin](/developer-certificate-of-origin).
 
 ## Notes
 - It is recommended to USB CAN device flashed with
