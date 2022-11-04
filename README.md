@@ -105,9 +105,8 @@ configured an alternative method of entry.
 Running `flash_can.py -h` to display help:
 
 ```
-usage: flash_can.py [-h] [-d <serial device>] [-b <baud rate>]
-                    [-i <can interface>] [-f <klipper.bin>] [-u <uuid>] [-q]
-                    [-v]
+usage: flash_can.py [-h] [-d <serial device>] [-b <baud rate>] [-i <can interface>]
+               [-f <klipper.bin>] [-u <uuid>] [-q] [-v]
 
 Can Bootloader Flash Utility
 
@@ -116,11 +115,12 @@ optional arguments:
   -d <serial device>, --device <serial device>
                         Serial Device
   -b <baud rate>, --baud <baud rate>
-                        Serial baud rate
+                        Serial baud rate. Default 250000.
   -i <can interface>, --interface <can interface>
                         Can Interface
   -f <klipper.bin>, --firmware <klipper.bin>
-                        Path to Klipper firmware file
+                        Path to Klipper firmware file. Default
+                        ~/klipper/out/klipper.bin
   -u <uuid>, --uuid <uuid>
                         Can device uuid
   -q, --query           Query Bootloader Device IDs
