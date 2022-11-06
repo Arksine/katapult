@@ -7,8 +7,8 @@
  down to keep the footprint minimal. In addition to CAN, CanBoot now
  supports USB and UART interfaces.
 
-Currently lpc176x and stm32 MCUs are supported.  CAN support is currently
-limited to stm32 F-series devices.
+Currently lpc176x, stm32 and rp2040 MCUs are supported.  CAN support is currently
+limited to stm32 F-series and rp2040 devices.
 
 CanBoot is licensed under the [GNU GPL v3](/LICENSE).
 
@@ -24,7 +24,7 @@ make
 ```
 
 The menuconfig will present the following options:
-- `Microcontroller Architecture`: Choose between lpc176x and ST
+- `Microcontroller Architecture`: Choose between lpc176x, stm32 and rp2040
 - `Processor model`: Options depend on the chosen architecture
 - `Build CanBoot deployment application`: See the [deployer](#canboot-deployer)
    section below
@@ -63,6 +63,13 @@ NOTE:  Prior to flashing CanBoot it is recommended to do a full chip erase.
 Doing so allows CanBoot to detect that no application is present and enter
 the bootloader.  This is required to enter the bootloader if you have not
 configured an alternative method of entry.
+
+NOTE RP2040: To flash rp2040 targets mcu should be rebooted in system boot mode
+(usually with _BOOT_ button pressed). After that `make flash` command
+could be used. You could also use rp2040 specific mass storage device
+drag-and-drop method to flash `canboot.uf2` from `out` folder. Flashing canboot
+will erase main application (i.e. klipper), so it should be uploaded
+with canboot again.
 
 ## Uploading Klipper
 1) Make sure the `klipper` service stopped.
