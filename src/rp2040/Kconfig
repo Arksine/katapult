@@ -44,10 +44,6 @@ config APPLICATION_START
     default 0x10004000
     hex
 
-config DEPLOYER_START
-    hex
-    default 0x10004000
-
 config BOOTLOADER_START
     hex
     default 0x10000100
@@ -87,6 +83,21 @@ config RP2040_STAGE2_CLKDIV
     default 4 if RP2040_FLASH_GENERIC_03
     default 2
 
+######################################################################
+# Deployer
+######################################################################
+
+choice
+    prompt "Build CanBoot deployment application"
+    config RP2040_FLASH_START_0000
+        bool "Do not build"
+    config RP2040_FLASH_START_4000
+        bool "16KiB bootloader"
+endchoice
+config DEPLOYER_START
+    hex
+    default 0x10004000 if RP2040_FLASH_START_4000
+    default 0
 
 ######################################################################
 # Communication inteface
