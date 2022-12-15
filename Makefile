@@ -82,7 +82,7 @@ $(OUT)canboot.elf: $(OBJS_canboot.elf)
 $(OUT)canboot.bin: $(OUT)canboot.elf ./scripts/buildbinary.py
 	@echo "  Creating bin file $@"
 	$(Q)$(OBJCOPY) -O binary $< $(OUT)canboot.work
-	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_APPLICATION_START) $(BUILDBINARY_FLAGS) $(OUT)canboot.work -c $(OUT)canboot_payload.c $@
+	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_LAUNCH_APP_ADDRESS) $(BUILDBINARY_FLAGS) $(OUT)canboot.work -c $(OUT)canboot_payload.c $@
 
 $(OUT)canboot_payload.o: $(OUT)canboot.bin
 	@echo "  Compiling $@"

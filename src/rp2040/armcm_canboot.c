@@ -51,7 +51,7 @@ application_read_flash(uint32_t address, uint32_t *dest)
 int
 application_check_valid(void)
 {
-    uint32_t *app = (void*)CONFIG_APPLICATION_START;
+    uint32_t *app = (void*)CONFIG_LAUNCH_APP_ADDRESS;
     return *app != 0 && *app != 0xffffffff;
 }
 
@@ -68,7 +68,7 @@ static void
 start_application(void)
 {
     set_bootup_code(0);
-    uint32_t *vtor = (void*)CONFIG_APPLICATION_START;
+    uint32_t *vtor = (void*)CONFIG_LAUNCH_APP_ADDRESS;
     SCB->VTOR = (uint32_t)vtor;
     asm volatile("MSR msp, %0\n    bx %1" : : "r"(vtor[0]), "r"(vtor[1]));
 }

@@ -40,7 +40,7 @@ config FLASH_START
     hex
     default 0x10000000
 
-config APPLICATION_START
+config LAUNCH_APP_ADDRESS
     default 0x10004000
     hex
 

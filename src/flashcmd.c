@@ -21,7 +21,7 @@ command_connect(uint32_t *data)
     uint32_t out[6 + mcuwords];
     memset(out, 0, (6 + mcuwords) * 4);
     out[2] = cpu_to_le32(PROTO_VERSION);
-    out[3] = cpu_to_le32(CONFIG_APPLICATION_START);
+    out[3] = cpu_to_le32(CONFIG_LAUNCH_APP_ADDRESS);
     out[4] = cpu_to_le32(CONFIG_BLOCK_SIZE);
     memcpy(&out[5], CONFIG_MCU, strlen(CONFIG_MCU));
     command_respond_ack(CMD_CONNECT, out, ARRAY_SIZE(out));
@@ -83,7 +83,7 @@ command_write_block(uint32_t *data)
     if (command_get_arg_count(data) != (CONFIG_BLOCK_SIZE / 4) + 1)
         goto fail;
     uint32_t block_address = le32_to_cpu(data[1]);
-    if (block_address < CONFIG_APPLICATION_START)
+    if (block_address < CONFIG_LAUNCH_APP_ADDRESS)
         goto fail;
     int ret = flash_write_block(block_address, &data[2]);
     if (ret < 0)

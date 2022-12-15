@@ -22,8 +22,8 @@ SECTIONS
         _text_vectortable_start = .;
         KEEP(*(.vector_table))
         _text_vectortable_end = .;
-#if CONFIG_APPLICATION_START > CONFIG_DEPLOYER_START
-        . = CONFIG_APPLICATION_START - CONFIG_DEPLOYER_START ;
+#if CONFIG_LAUNCH_APP_ADDRESS > CONFIG_DEPLOYER_START
+        . = CONFIG_LAUNCH_APP_ADDRESS - CONFIG_DEPLOYER_START ;
 #endif
         *(.text .text.*)
         *(.rodata .rodata*)
