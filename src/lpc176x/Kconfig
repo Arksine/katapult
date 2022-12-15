@@ -57,7 +57,7 @@ config FLASH_START
     hex
     default 0x0000
 
-config BOOTLOADER_START
+config FLASH_BOOT_ADDRESS
     hex
     default 0x0000
 
