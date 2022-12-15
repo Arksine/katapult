@@ -9,7 +9,7 @@
 #include "autoconf.h" // CONFIG_MCU
 #include "board/internal.h" // SysTick
 #include "board/irq.h" // irq_disable
-#include "board/misc.h" // get_bootup_code
+#include "canboot.h" // get_bootup_code
 #include "command.h" // DECL_CONSTANT_STR
 
 // Export MCU type

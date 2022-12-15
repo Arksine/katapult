@@ -9,6 +9,7 @@
 #include "board/internal.h" // NVIC_SystemReset
 #include "board/irq.h" // irq_disable
 #include "board/misc.h" // try_request_canboot
+#include "canboot.h" // REQUEST_CANBOOT
 
 void
 try_request_canboot(void)

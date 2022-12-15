@@ -9,6 +9,8 @@
 #include "board/armcm_reset.h" // try_request_canboot
 #include "board/flash.h" // flash_write_block
 #include "board/io.h" // readb
+#include "board/misc.h" // timer_read_time
+#include "canboot.h" // timer_setup
 #include "deployer.h" // deployer_is_active
 #include "sched.h" // sched_check_periodic
 

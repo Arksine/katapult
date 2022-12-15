@@ -9,6 +9,7 @@
 #include "board/io.h" // readl
 #include "board/irq.h" // irq_disable
 #include "board/misc.h" // timer_read_time
+#include "canboot.h" // timer_setup
 
 
 /****************************************************************

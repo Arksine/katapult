@@ -9,6 +9,7 @@
 #include "board/flash.h" // flash_write_block
 #include "board/misc.h" // application_jump
 #include "byteorder.h" // cpu_to_le32
+#include "canboot.h" // application_jump
 #include "command.h" // command_respond_ack
 #include "flashcmd.h" // flashcmd_is_in_transfer
 #include "sched.h" // DECL_TASK
