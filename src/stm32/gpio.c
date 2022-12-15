@@ -6,10 +6,10 @@
 
 #include <string.h> // ffs
 #include "board/irq.h" // irq_save
+#include "command.h" // DECL_ENUMERATION_RANGE
 #include "gpio.h" // gpio_out_setup
 #include "internal.h" // gpio_peripheral
-#include "compiler.h" // ARRAY_SIZE
-#include "command.h" // DECL_ENUMERATION_RANGE
+#include "sched.h" // sched_shutdown
 
 DECL_ENUMERATION_RANGE("pin", "PA0", GPIO('A', 0), 16);
 DECL_ENUMERATION_RANGE("pin", "PB0", GPIO('B', 0), 16);
@@ -66,20 +66,19 @@ regs_to_pin(GPIO_TypeDef *regs, uint32_t bit)
     return 0;
 }
 
-uint8_t
-check_gpio_valid(uint32_t pin)
+// Verify that a gpio is a valid pin
+static int
+gpio_valid(uint32_t pin)
 {
-    if (GPIO2PORT(pin) >= ARRAY_SIZE(digital_regs))
-        return 0;
-    GPIO_TypeDef *regs = digital_regs[GPIO2PORT(pin)];
-    if (! regs)
-        return 0;
-    return 1;
+    uint32_t port = GPIO2PORT(pin);
+    return port < ARRAY_SIZE(digital_regs) && digital_regs[port];
 }
 
 struct gpio_out
 gpio_out_setup(uint32_t pin, uint32_t val)
 {
+    if (!gpio_valid(pin))
+        shutdown("Not an output pin");
     GPIO_TypeDef *regs = digital_regs[GPIO2PORT(pin)];
     gpio_clock_enable(regs);
     struct gpio_out g = { .regs=regs, .bit=GPIO2BIT(pin) };
@@ -126,9 +125,12 @@ gpio_out_write(struct gpio_out g, uint32_t val)
         regs->BSRR = g.bit << 16;
 }
 
+
 struct gpio_in
 gpio_in_setup(uint32_t pin, int32_t pull_up)
 {
+    if (!gpio_valid(pin))
+        shutdown("Not a valid input pin");
     GPIO_TypeDef *regs = digital_regs[GPIO2PORT(pin)];
     struct gpio_in g = { .regs=regs, .bit=GPIO2BIT(pin) };
     gpio_in_reset(g, pull_up);

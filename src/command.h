@@ -18,6 +18,10 @@
     DECL_CTR_INT("DECL_ENUMERATION_RANGE " ENUM " " NAME,       \
                  2, CTR_INT(VALUE), CTR_INT(COUNT))
 
+// Shutdown wrappers for Klipper compatibility
+#define shutdown(msg)     do { } while (1)
+#define try_shutdown(msg) do { } while (0)
+
 #define PROTO_VERSION   0x00010000      // Version 1.0.0
 #define CMD_CONNECT       0x11
 #define CMD_RX_BLOCK      0x12
