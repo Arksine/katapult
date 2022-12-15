@@ -7,9 +7,9 @@
 import sys, argparse, struct
 
 ERR_MSG = """
-The CanBoot binary is too large for the configured APPLICATION_START.
+The CanBoot binary is too large for the configured LAUNCH_APP_ADDRESS.
 
-Rerun "make menuconfig" and either increase the APPLICATION_START or
+Rerun "make menuconfig" and either increase the LAUNCH_APP_ADDRESS or
 disable features to reduce the final binary size.
 """
 

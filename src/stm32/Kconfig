@@ -376,7 +376,7 @@ choice
         bool "4KiB offset" if MACH_STM32F0 || MACH_STM32F1 || MACH_STM32G0
 endchoice
 
-config APPLICATION_START
+config LAUNCH_APP_ADDRESS
     hex
     default 0x8008000 if STM32_APP_START_8000
     default 0x8004000 if STM32_APP_START_4000
