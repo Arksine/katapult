@@ -41,6 +41,10 @@ config FLASH_SIZE
     hex
     default 0x80000
 
+config FLASH_BOOT_ADDRESS
+    hex
+    default 0x0
+
 config RAM_START
     hex
     default 0x10000000
@@ -53,13 +57,6 @@ config STACK_SIZE
     int
     default 512
 
-config FLASH_START
-    hex
-    default 0x0000
-
-config FLASH_BOOT_ADDRESS
-    hex
-    default 0x0000
 
 ######################################################################
 # Bootloader
@@ -67,15 +64,15 @@ config FLASH_BOOT_ADDRESS
 
 choice
     prompt "Build CanBoot deployment application"
-    config LPC176X_FLASH_START_0000
+    config LPC_FLASH_START_0000
         bool "Do not build"
-    config LPC176X_FLASH_START_4000
-        bool "16KiB bootloader"
+    config LPC_FLASH_START_4000
+        bool "16KiB bootloader (Smoothieware bootloader)"
 endchoice
 config FLASH_APPLICATION_ADDRESS
     hex
-    default 0x4000 if LPC176X_FLASH_START_4000
-    default 0
+    default 0x4000 if LPC_FLASH_START_4000
+    default 0x0000
 
 
 ######################################################################
@@ -99,6 +96,10 @@ endchoice
 ######################################################################
 # Flash settings
 ######################################################################
+
+config FLASH_START
+    hex
+    default 0x0000
 
 config LAUNCH_APP_ADDRESS
     hex
