@@ -122,3 +122,7 @@ has been modfied to enable the US code page (437) and enable label
 support.  The file "diskio.c" in the original archive is not included
 as it is only serves as an example for how to implement the media api
 callbacks.
+
+The can2040 directory contains code from:
+  https://github.com/KevinOConnor/can2040
+revision 177b0073fe6f19281ee7f7fdbe9599e32d1b4b8b.
