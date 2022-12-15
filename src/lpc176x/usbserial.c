@@ -5,13 +5,12 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include <string.h> // memcpy
-#include "autoconf.h" // CONFIG_SMOOTHIEWARE_BOOTLOADER
 #include "board/armcm_boot.h" // armcm_enable_irq
-#include "board/irq.h" // irq_disable
+#include "board/armcm_timer.h" // udelay
 #include "board/misc.h" // timer_read_time
-#include "generic/usb_cdc.h" // usb_notify_ep0
 #include "byteorder.h" // cpu_to_le32
 #include "command.h" // DECL_CONSTANT_STR
+#include "generic/usb_cdc.h" // usb_notify_ep0
 #include "internal.h" // gpio_peripheral
 #include "sched.h" // DECL_INIT
 #include "usb_cdc_ep.h" // USB_CDC_EP_BULK_IN
@@ -243,6 +242,15 @@ usb_set_configure(void)
     sie_cmd_write(SIE_CMD_CONFIGURE, 1);
     usb_irq_enable();
 }
+
+// Force a USB disconnect (used during reboot into bootloader)
+void
+usb_disconnect(void)
+{
+    sie_cmd_write(SIE_CMD_SET_DEVICE_STATUS, 0);
+    udelay(5000);
+}
+
 
 /****************************************************************
  * Setup and interrupts
