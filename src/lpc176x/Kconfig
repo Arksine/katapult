@@ -72,7 +72,7 @@ choice
     config LPC176X_FLASH_START_4000
         bool "16KiB bootloader"
 endchoice
-config DEPLOYER_START
+config FLASH_APPLICATION_ADDRESS
     hex
     default 0x4000 if LPC176X_FLASH_START_4000
     default 0

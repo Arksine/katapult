@@ -94,10 +94,10 @@ choice
     config RP2040_FLASH_START_4000
         bool "16KiB bootloader"
 endchoice
-config DEPLOYER_START
+config FLASH_APPLICATION_ADDRESS
     hex
     default 0x10004000 if RP2040_FLASH_START_4000
-    default 0
+    default 0x10000100
 
 ######################################################################
 # Communication inteface

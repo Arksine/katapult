@@ -226,7 +226,7 @@ choice
     config STM32_FLASH_START_20000
         bool "128KiB bootloader (SKR SE BX v2.0)" if MACH_STM32H743
 endchoice
-config DEPLOYER_START
+config FLASH_APPLICATION_ADDRESS
     hex
     default 0x8000800 if STM32_FLASH_START_800
     default 0x8001000 if STM32_FLASH_START_1000
@@ -240,11 +240,11 @@ config DEPLOYER_START
     default 0x8010000 if STM32_FLASH_START_10000
     default 0x8020000 if STM32_FLASH_START_20000
     default 0x8020200 if STM32_FLASH_START_20200
-    default 0
+    default 0x8000000
 
 config ARMCM_RAM_VECTORTABLE
     bool
-    default y if MACH_STM32F0 && DEPLOYER_START != 0
+    default y if MACH_STM32F0 && FLASH_APPLICATION_ADDRESS != 0x8000000
     default n
 
 

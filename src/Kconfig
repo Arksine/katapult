@@ -104,7 +104,7 @@ config STATUS_LED_PIN
 
 config BUILD_DEPLOYER
     bool
-    default y if DEPLOYER_START != 0
+    default y if FLASH_APPLICATION_ADDRESS != FLASH_BOOT_ADDRESS
     default n
 
 # The HAVE_x options allow boards to disable support for some commands
