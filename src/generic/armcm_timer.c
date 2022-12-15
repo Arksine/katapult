@@ -9,7 +9,7 @@
 #include "board/internal.h" // SysTick
 #include "board/irq.h" // irq_disable
 #include "board/misc.h" // timer_from_us
-
+#include "canboot.h" // timer_setup
 
 // Return the number of clock ticks for a given number of microseconds
 uint32_t

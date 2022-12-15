@@ -7,6 +7,7 @@
 #include "board/io.h" // readb
 #include "board/misc.h" // jump_to_application
 #include "bootentry.h" // bootentry_check
+#include "canboot.h" // timer_setup
 #include "deployer.h" // deployer_is_active
 #include "sched.h" // sched_check_periodic
 

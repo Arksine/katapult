@@ -17,7 +17,6 @@ struct task_wake {
 };
 
 // sched.c
-void udelay(uint32_t usecs);
 void sched_wake_tasks(void);
 void sched_wake_task(struct task_wake *w);
 uint8_t sched_check_wake(struct task_wake *w);

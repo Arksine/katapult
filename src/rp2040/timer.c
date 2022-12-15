@@ -8,6 +8,7 @@
 #include "board/armcm_boot.h" // armcm_enable_irq
 #include "board/irq.h" // irq_disable
 #include "board/misc.h" // timer_read_time
+#include "canboot.h" // timer_setup
 #include "hardware/structs/resets.h" // RESETS_RESET_UART0_BITS
 #include "hardware/structs/timer.h" // RESETS_RESET_UART0_BITS
 #include "internal.h" // enable_pclock
