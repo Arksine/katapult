@@ -1,13 +1,14 @@
 // Code to setup clocks and gpio on stm32f1
 //
-// Copyright (C) 2019-2021  Kevin O'Connor <kevin@koconnor.net>
+// Copyright (C) 2019-2022  Kevin O'Connor <kevin@koconnor.net>
 //
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // VectorTable
+#include "board/armcm_reset.h" // try_request_canboot
 #include "board/irq.h" // irq_disable
-#include "board/usb_cdc.h" // usb_request_bootloader
+#include "board/misc.h" // bootloader_request
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
 
@@ -208,6 +209,46 @@ gpio_peripheral(uint32_t gpio, uint32_t mode, int pullup)
             stm32f1_alternative_remap(AFIO_MAPR_CAN_REMAP_Msk,
                                       AFIO_MAPR_CAN_REMAP_REMAP3);
     }
+}
+
+
+/****************************************************************
+ * Bootloader
+ ****************************************************************/
+
+// Reboot into USB "HID" bootloader
+static void
+usb_hid_bootloader(void)
+{
+    irq_disable();
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
+    PWR->CR |= PWR_CR_DBP;
+    BKP->DR4 = 0x424C; // HID Bootloader magic key
+    PWR->CR &=~ PWR_CR_DBP;
+    NVIC_SystemReset();
+}
+
+// Reboot into USB "stm32duino" bootloader
+static void
+usb_stm32duino_bootloader(void)
+{
+    irq_disable();
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
+    PWR->CR |= PWR_CR_DBP;
+    BKP->DR10 = 0x01; // stm32duino bootloader magic key
+    PWR->CR &=~ PWR_CR_DBP;
+    NVIC_SystemReset();
+}
+
+// Handle reboot requests
+void
+bootloader_request(void)
+{
+    try_request_canboot();
+    if (CONFIG_STM32_FLASH_START_800)
+        usb_hid_bootloader();
+    else if (CONFIG_STM32_FLASH_START_2000)
+        usb_stm32duino_bootloader();
 }
 
 

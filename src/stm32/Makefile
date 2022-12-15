@@ -25,7 +25,7 @@ CFLAGS_canboot.elf += -T $(OUT)src/generic/armcm_link.ld
 $(OUT)canboot.elf: $(OUT)src/generic/armcm_link.ld
 
 # Add source files
-mcu-y = stm32/gpio.c stm32/flash.c stm32/clockline.c
+mcu-y = stm32/gpio.c stm32/flash.c stm32/clockline.c stm32/dfu_reboot.c
 mcu-y += generic/armcm_irq.c generic/crc16_ccitt.c
 mcu-$(CONFIG_MACH_STM32F0) += ../lib/stm32f0/system_stm32f0xx.c
 mcu-$(CONFIG_MACH_STM32F0) += stm32/stm32f0.c stm32/stm32f0_timer.c

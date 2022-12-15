@@ -6,8 +6,9 @@
 
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // VectorTable
+#include "board/armcm_reset.h" // try_request_canboot
 #include "board/irq.h" // irq_disable
-#include "board/usb_cdc.h" // usb_request_bootloader
+#include "board/misc.h" // bootloader_request
 #include "command.h" // DECL_CONSTANT_STR
 #include "internal.h" // enable_pclock
 #include "sched.h" // sched_main
@@ -138,7 +139,7 @@ enable_clock_stm32f446(void)
         ;
 
     // Enable 48Mhz USB clock
-    if (CONFIG_USBSERIAL) {
+    if (CONFIG_USB) {
         uint32_t ref = (CONFIG_STM32_CLOCK_REF_INTERNAL
                         ? 16000000 : CONFIG_CLOCK_REF_FREQ);
         uint32_t plls_base = 2000000, plls_freq = FREQ_USB * 4;
@@ -185,6 +186,35 @@ clock_setup(void)
         ;
 }
 
+
+/****************************************************************
+ * Bootloader
+ ****************************************************************/
+
+// Reboot into USB "HID" bootloader
+static void
+usb_hid_bootloader(void)
+{
+    irq_disable();
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    RCC->APB1ENR;
+    PWR->CR |= PWR_CR_DBP;
+    RTC->BKP4R = 0x424C; // HID Bootloader magic key
+    PWR->CR &= ~PWR_CR_DBP;
+    NVIC_SystemReset();
+}
+
+// Handle reboot requests
+void
+bootloader_request(void)
+{
+    try_request_canboot();
+    if (CONFIG_STM32_FLASH_START_4000)
+        usb_hid_bootloader();
+    dfu_reboot();
+}
+
+
 /****************************************************************
  * Startup
  ****************************************************************/
@@ -193,6 +223,8 @@ clock_setup(void)
 void
 armcm_main(void)
 {
+    dfu_reboot_check();
+
     // Run SystemInit() and then restore VTOR
     SystemInit();
     SCB->VTOR = (uint32_t)VectorTable;
