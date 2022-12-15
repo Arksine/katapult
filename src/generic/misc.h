@@ -18,8 +18,6 @@ void application_read_flash(uint32_t address, uint32_t *dest);
 int application_check_valid(void);
 void application_jump(void);
 
-void try_request_canboot(void);
-
 void timer_setup(void);
 
 uint32_t timer_from_us(uint32_t us);
@@ -31,5 +29,7 @@ void *dynmem_start(void);
 void *dynmem_end(void);
 
 uint16_t crc16_ccitt(uint8_t *buf, uint_fast8_t len);
+
+void bootloader_request(void);
 
 #endif // misc.h

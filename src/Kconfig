@@ -78,6 +78,7 @@ config CANBUS_FILTER
     bool
     default y if CANSERIAL
 
+# Support setting gpio state at startup
 config INITIAL_PINS
     string "GPIO pins to set on bootloader entry"
     depends on LOW_LEVEL_OPTIONS
