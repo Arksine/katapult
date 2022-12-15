@@ -10,20 +10,22 @@ config LOW_LEVEL_OPTIONS
 
 choice
     prompt "Micro-controller Architecture"
-    config MACH_STM32
-        bool "STMicroelectronics STM32"
     config MACH_LPC176X
         bool "LPC176x (Smoothieboard)"
+    config MACH_STM32
+        bool "STMicroelectronics STM32"
     config MACH_RP2040
         bool "Raspberry Pi RP2040"
 endchoice
 
-source "src/stm32/Kconfig"
 source "src/lpc176x/Kconfig"
+source "src/stm32/Kconfig"
 source "src/rp2040/Kconfig"
 
 # Generic configuration options for serial ports
 config SERIAL
+    bool
+config SERIAL_BOOTLOADER_SIDECHANNEL
     bool
 config SERIAL_BAUD
     depends on SERIAL
@@ -36,18 +38,23 @@ config SERIAL_BAUD
 # Generic configuration options for USB
 config USBSERIAL
     bool
+config USBCANBUS
+    bool
+config USB
+    bool
+    default y if USBSERIAL || USBCANBUS
 config USB_VENDOR_ID
     default 0x1d50
 config USB_DEVICE_ID
     default 0x6177
 config USB_SERIAL_NUMBER_CHIPID
-    depends on HAVE_CHIPID && USBSERIAL
+    depends on USB && HAVE_CHIPID
     default y
 config USB_SERIAL_NUMBER
     default "12345"
 
 menu "USB ids"
-    depends on USBSERIAL && LOW_LEVEL_OPTIONS
+    depends on USB && LOW_LEVEL_OPTIONS
 config USB_VENDOR_ID
     hex "USB vendor ID" if USBSERIAL
 config USB_DEVICE_ID
@@ -63,9 +70,9 @@ config CANSERIAL
     bool
 config CANBUS
     bool
-    default y if CANSERIAL
+    default y if CANSERIAL || USBCANBUS
 config CANBUS_FREQUENCY
-    int "CAN bus speed" if CANBUS
+    int "CAN bus speed" if LOW_LEVEL_OPTIONS && CANBUS
     default 500000
 config CANBUS_FILTER
     bool
