@@ -6,7 +6,9 @@
 
 #include "autoconf.h" // CONFIG_CLOCK_REF_FREQ
 #include "board/armcm_boot.h" // armcm_main
+#include "board/armcm_reset.h" // try_request_canboot
 #include "board/irq.h" // irq_disable
+#include "board/misc.h" // bootloader_request
 #include "command.h" // DECL_CONSTANT_STR
 #include "deployer.h" // deployer_is_active
 #include "internal.h" // enable_pclock
@@ -85,7 +87,7 @@ pll_setup(void)
 
     // Setup CFGR3 register
     uint32_t cfgr3 = RCC_CFGR3_I2C1SW;
-#if CONFIG_USBSERIAL
+#if CONFIG_USB
         // Select PLL as source for USB clock
         cfgr3 |= RCC_CFGR3_USBSW;
 #endif
@@ -108,7 +110,7 @@ hsi48_setup(void)
         ;
 
     // Enable USB clock recovery
-    if (CONFIG_USBSERIAL) {
+    if (CONFIG_USB) {
         enable_pclock(CRS_BASE);
         CRS->CR |= CRS_CR_AUTOTRIMEN | CRS_CR_CEN;
     }
@@ -127,6 +129,20 @@ hsi14_setup(void)
     while (!(RCC->CR2 & RCC_CR2_HSI14RDY))
         ;
 }
+
+
+/****************************************************************
+ * Bootloader
+ ****************************************************************/
+
+// Handle reboot requests
+void
+bootloader_request(void)
+{
+    try_request_canboot();
+    dfu_reboot();
+}
+
 
 /****************************************************************
  * Startup
@@ -151,6 +167,7 @@ enable_ram_vectortable(void)
 void
 armcm_main(void)
 {
+    dfu_reboot_check();
     SystemInit();
 
     enable_pclock(SYSCFG_BASE);
@@ -161,8 +178,7 @@ armcm_main(void)
     FLASH->ACR = (1 << FLASH_ACR_LATENCY_Pos) | FLASH_ACR_PRFTBE;
 
     // Configure main clock
-    if (CONFIG_MACH_STM32F0x2 && CONFIG_STM32_CLOCK_REF_INTERNAL
-        && CONFIG_USBSERIAL)
+    if (CONFIG_MACH_STM32F0x2 && CONFIG_STM32_CLOCK_REF_INTERNAL && CONFIG_USB)
         hsi48_setup();
     else
         pll_setup();

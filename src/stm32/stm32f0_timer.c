@@ -5,6 +5,7 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include "board/armcm_boot.h" // armcm_enable_irq
+#include "board/armcm_timer.h" // udelay
 #include "board/internal.h" // TIM3
 #include "board/io.h" // readl
 #include "board/irq.h" // irq_disable
@@ -17,14 +18,19 @@
  ****************************************************************/
 
 // Use 32bit TIM2 timer if available (otherwise use 16bit TIM3 timer)
-#ifdef TIM2
-#define TIMx TIM2
-#define TIMx_IRQn TIM2_IRQn
-#define HAVE_TIMER_32BIT 1
-#else
-#define TIMx TIM3
-#define TIMx_IRQn TIM3_IRQn
-#define HAVE_TIMER_32BIT 0
+#if defined(TIM2)
+  #define TIMx TIM2
+  #define TIMx_IRQn TIM2_IRQn
+  #define HAVE_TIMER_32BIT 1
+#elif defined(TIM3)
+  #define TIMx TIM3
+  #define TIMx_IRQn TIM3_IRQn
+  #define HAVE_TIMER_32BIT 0
+#endif
+
+// Some chips have slightly different register names
+#if CONFIG_MACH_STM32G0B0
+  #define TIM3_IRQn TIM3_TIM4_IRQn
 #endif
 
 static inline uint32_t
@@ -40,12 +46,13 @@ timer_set(uint32_t next)
     TIMx->SR = 0;
 }
 
+
 /****************************************************************
  * 16bit hardware timer to 32bit conversion
  ****************************************************************/
 
 // High bits of timer (top 17 bits)
-static uint32_t timer_high = 0;
+static uint32_t timer_high;
 
 // Return the current time (in absolute clock ticks).
 uint32_t __always_inline
@@ -59,6 +66,7 @@ timer_read_time(void)
     // bits) using method that handles rollovers correctly.
     return (th ^ cur) + (th & 0xffff);
 }
+
 
 /****************************************************************
  * Setup and irqs

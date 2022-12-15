@@ -2,6 +2,7 @@
 #define __COMMAND_H
 
 #include <stdarg.h> // va_list
+#include <stddef.h>
 #include <stdint.h> // uint32_t
 #include "ctr.h" // DECL_CTR
 
