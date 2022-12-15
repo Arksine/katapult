@@ -11,7 +11,7 @@ OUTPUT_ARCH(arm)
 
 MEMORY
 {
-  rom (rx) : ORIGIN = CONFIG_DEPLOYER_START , LENGTH = CONFIG_FLASH_SIZE
+  rom (rx) : ORIGIN = CONFIG_FLASH_APPLICATION_ADDRESS , LENGTH = CONFIG_FLASH_SIZE
   ram (rwx) : ORIGIN = CONFIG_RAM_START , LENGTH = CONFIG_RAM_SIZE
 }
 
@@ -22,8 +22,8 @@ SECTIONS
         _text_vectortable_start = .;
         KEEP(*(.vector_table))
         _text_vectortable_end = .;
-#if CONFIG_LAUNCH_APP_ADDRESS > CONFIG_DEPLOYER_START
-        . = CONFIG_LAUNCH_APP_ADDRESS - CONFIG_DEPLOYER_START ;
+#if CONFIG_LAUNCH_APP_ADDRESS > CONFIG_FLASH_APPLICATION_ADDRESS
+        . = CONFIG_LAUNCH_APP_ADDRESS - CONFIG_FLASH_APPLICATION_ADDRESS ;
 #endif
         *(.text .text.*)
         *(.rodata .rodata*)
