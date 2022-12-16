@@ -36,6 +36,9 @@ set_bootup_code(uint64_t code)
     uint64_t *req_code = (void*)&_stack_end;
     *req_code = code;
     barrier();
+#if __CORTEX_M >= 7
+    SCB_CleanDCache_by_Addr((void*)req_code, sizeof(*req_code));
+#endif
 }
 
 #pragma GCC diagnostic pop
