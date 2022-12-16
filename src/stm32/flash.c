@@ -34,6 +34,8 @@ flash_get_page_size(uint32_t addr)
         return *flash_size <= 64 ? 1024 : 2 * 1024;
     } else if (CONFIG_MACH_STM32G0) {
         return 2 * 1024;
+    } else if (CONFIG_MACH_STM32H7) {
+        return 128 * 1024;
     }
 }
 
@@ -48,8 +50,13 @@ check_erased(uint32_t addr, uint32_t count)
     return 1;
 }
 
-#if CONFIG_MACH_STM32G0 // stm32g0 chip has slightly different bit name
+// Some chips have slightly different register names
+#if CONFIG_MACH_STM32G0
 #define FLASH_SR_BSY (FLASH_SR_BSY1 | FLASH_SR_BSY2)
+#elif CONFIG_MACH_STM32H7
+#define CR CR1
+#define SR SR1
+#define KEYR KEYR1
 #endif
 
 // Wait for flash hardware to report ready
@@ -114,6 +121,13 @@ erase_page(uint32_t page_address)
     }
     pidx = pidx > 0x3ff ? 0x3ff : pidx;
     FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT | (pidx << FLASH_CR_PNB_Pos);
+#elif CONFIG_MACH_STM32H7
+    uint32_t snb = (page_address - 0x08000000) / (128 * 1024);
+    snb = snb > 7 ? 7 : snb;
+    FLASH->CR = FLASH_CR_SER | FLASH_CR_START | (snb << FLASH_CR_SNB_Pos);
+    while (FLASH->SR & FLASH_SR_QW)
+        ;
+    SCB_InvalidateDCache_by_Addr((void*)page_address, 128*1024);
 #endif
     wait_flash();
 }
@@ -144,6 +158,23 @@ write_block(uint32_t block_address, uint32_t *data)
         writel(&page[i*2 + 1], data[i*2 + 1]);
         wait_flash();
     }
+#elif CONFIG_MACH_STM32H7
+    uint32_t *page = (void*)block_address;
+    FLASH->CR = FLASH_CR_PG;
+    for (int i = 0; i < CONFIG_BLOCK_SIZE / 32; i++) {
+        writel(&page[i*8], data[i*8]);
+        writel(&page[i*8 + 1], data[i*8 + 1]);
+        writel(&page[i*8 + 2], data[i*8 + 2]);
+        writel(&page[i*8 + 3], data[i*8 + 3]);
+        writel(&page[i*8 + 4], data[i*8 + 4]);
+        writel(&page[i*8 + 5], data[i*8 + 5]);
+        writel(&page[i*8 + 6], data[i*8 + 6]);
+        writel(&page[i*8 + 7], data[i*8 + 7]);
+        while (FLASH->SR & FLASH_SR_QW)
+            ;
+        wait_flash();
+    }
+    SCB_InvalidateDCache_by_Addr((void*)block_address, CONFIG_BLOCK_SIZE);
 #endif
 }
 
