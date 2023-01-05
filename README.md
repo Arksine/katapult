@@ -179,7 +179,12 @@ acceptance of the
 ## Notes
 - It is recommended to USB CAN device flashed with
   [candlelight](https://github.com/candle-usb/candleLight_fw), such as a
-  [Canable](https://canable.io/).
+  [Canable](https://canable.io/).  Alternatively, a device that supports
+  Klipper's USB-CAN bridge mode works well.
+- The BTT U2C v2.1 CAN peripheral does not work with CanBoot.  The device fails
+  when large data transfers are requested.  Note that this problem may also
+  lead to Klipper to shutdowns.  Avoid this device until BTT has resolved the
+  problem.
 - If using a MCP2515 CAN Device (ie: Waveshare RS485 CAN HAT) it is possible
   that packets will be dropped when reading flash back from the node during
   the verification process.  That said, I have successfully tested the 12 MHz
