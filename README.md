@@ -177,7 +177,7 @@ acceptance of the
 [developer certificate of origin](/developer-certificate-of-origin).
 
 ## Notes
-- It is recommended to USB CAN device flashed with
+- It is recommended to use a USB-CAN device flashed with
   [candlelight](https://github.com/candle-usb/candleLight_fw), such as a
   [Canable](https://canable.io/). Alternatively, a device that supports Klipper's
   USB-CAN bridge mode works well.
