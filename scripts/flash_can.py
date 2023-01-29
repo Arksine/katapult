@@ -440,7 +440,9 @@ class CanSocket:
         self.nodes[decoded_id + 1] = node
         return node
 
-    async def run(self, intf: str, uuid: int, fw_path: pathlib.Path) -> None:
+    async def run(
+        self, intf: str, uuid: int, fw_path: pathlib.Path, req_only: bool
+    ) -> None:
         if not fw_path.is_file():
             raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
         try:
@@ -452,6 +454,9 @@ class CanSocket:
         self._loop.add_reader(
             self.cansock.fileno(), self._handle_can_response)
         self._jump_to_bootloader(uuid)
+        if req_only:
+            output_line("Bootloader request command sent")
+            return
         await asyncio.sleep(.5)
         self._reset_nodes()
         await asyncio.sleep(.5)
@@ -586,6 +591,10 @@ def main():
         "-v", "--verbose", action="store_true",
         help="Enable verbose responses"
     )
+    parser.add_argument(
+        "-r", "--request-bootloader", action="store_true",
+        help="Requests the bootloader and exits (CAN only)"
+    )
 
     args = parser.parse_args()
     if not args.verbose:
@@ -594,6 +603,7 @@ def main():
     fpath = pathlib.Path(args.firmware).expanduser().resolve()
     loop = asyncio.get_event_loop()
     iscan = args.device is None
+    req_only = args.request_bootloader
     sock = None
     try:
         if iscan:
@@ -606,7 +616,7 @@ def main():
                         "The 'uuid' option must be specified to flash a device"
                     )
                 uuid = int(args.uuid, 16)
-                loop.run_until_complete(sock.run(intf, uuid, fpath))
+                loop.run_until_complete(sock.run(intf, uuid, fpath, req_only))
         else:
             if args.device is None:
                 raise FlashCanError(
