@@ -132,11 +132,22 @@ optional arguments:
                         Can device uuid
   -q, --query           Query Bootloader Device IDs
   -v, --verbose         Enable verbose responses
+  -r, --request-bootloader
+                        Requests the bootloader and exits (CAN only)
 ```
 
 The `interface` option defaults to `can0` if omitted.  The `firmware` option
 defaults to `~/klipper/out/klipper.bin`.  The `uuid` must be specified unless
 the user is running a query with `-q`.
+
+When the `-r` option is supplied in addition to `-u` (and optionally `-i`)
+the script will request that the node enter the bootloader.  The script will
+then immediately exit, no attempt will be made to upload a new binary over the
+canbus.  This is particularly useful for Klipper devices running "USB to CAN
+bridge mode". These devices upload firmware using DFU and/or CanBoot-USB. This
+option allows the user to enter the bootloader without physical access to the
+board, then use the appropriate tool (`dfu-util` or `flash_can.py -d`) to
+upload the new binary.
 
 ## CanBoot Deployer
 
