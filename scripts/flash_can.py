@@ -443,7 +443,7 @@ class CanSocket:
     async def run(
         self, intf: str, uuid: int, fw_path: pathlib.Path, req_only: bool
     ) -> None:
-        if not fw_path.is_file():
+        if not req_only and not fw_path.is_file():
             raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
         try:
             self.cansock.bind((intf,))
