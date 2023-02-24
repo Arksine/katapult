@@ -127,6 +127,7 @@ class CanFlasher:
         crc = crc16_ccitt(out_cmd[2:])
         out_cmd.extend(struct.pack("<H", crc))
         out_cmd.extend(CMD_TRAILER)
+        err = Exception()
         while tries:
             data = bytearray()
             recd_len = 0
@@ -143,9 +144,15 @@ class CanFlasher:
                         recd_len = data[3] * 4
                         read_done = len(data) == recd_len + 8
                         break
-
-            except Exception:
-                logging.exception("Can Read Error")
+            except asyncio.TimeoutError:
+                logging.info(
+                    f"Response for command {cmdname} timed out, "
+                    f"{tries - 1} tries remaining"
+                )
+            except Exception as e:
+                if type(e) != type(err) or str(e) != str(err):
+                    err = e
+                    logging.exception("Can Read Error")
             else:
                 trailer = data[-2:]
                 recd_crc, = struct.unpack("<H", data[-4:-2])
