@@ -408,20 +408,22 @@ class CanSocket:
         endtime = curtime + 2.
         self.uuids: List[int] = []
         while curtime < endtime:
-            diff = endtime - curtime
+            timeout = max(.1, endtime - curtime)
             try:
-                resp = await self.admin_node.readexactly(8, diff)
+                resp = await self.admin_node.read(8, timeout)
             except asyncio.TimeoutError:
-                break
+                continue
             finally:
                 curtime = self._loop.time()
-            if resp[0] != CANBUS_RESP_NEED_NODEID:
+            if len(resp) < 7 or resp[0] != CANBUS_RESP_NEED_NODEID:
                 continue
             app_names = {
                 KLIPPER_SET_NODE_CMD: "Klipper",
                 CANBUS_CMD_SET_NODEID: "CanBoot"
             }
-            app = app_names.get(resp[7], "Unknown")
+            app = "Unknown"
+            if len(resp) > 7:
+                app = app_names.get(resp[7], "Unknown")
             data = resp[1:7]
             output_line(f"Detected UUID: {data.hex()}, Application: {app}")
             uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(data)])
