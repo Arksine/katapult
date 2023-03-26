@@ -472,7 +472,7 @@ class CanSocket:
         id_list = await self._query_uuids()
         if uuid not in id_list:
             raise FlashCanError(
-                f"Unable to find node matching UUID: {uuid:06x}"
+                f"Unable to find node matching UUID: {uuid:012x}"
             )
         node = self._set_node_id(uuid)
         flasher = CanFlasher(node, fw_path)
