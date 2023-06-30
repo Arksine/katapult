@@ -221,6 +221,10 @@ flash_write_block(uint32_t block_address, uint32_t *data)
     if (need_erase)
         erase_page(page_address);
 
+    // avoid triggering STM32H72xx write security
+    lock_flash();
+    unlock_flash();
+
     // Write block
     write_block(block_address, data);
 
