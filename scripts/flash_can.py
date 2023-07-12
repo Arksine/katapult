@@ -578,7 +578,7 @@ def main():
     )
     parser.add_argument(
         "-b", "--baud", default=250000, metavar='<baud rate>',
-        help="Serial baud rate"
+        help="Serial baud rate. Default 250000."
     )
     parser.add_argument(
         "-i", "--interface", default="can0", metavar='<can interface>',
@@ -587,7 +587,8 @@ def main():
     parser.add_argument(
         "-f", "--firmware", metavar="<klipper.bin>",
         default="~/klipper/out/klipper.bin",
-        help="Path to Klipper firmware file")
+        help="Path to Klipper firmware file. Default ~/klipper/out/klipper.bin"
+    )
     parser.add_argument(
         "-u", "--uuid", metavar="<uuid>", default=None,
         help="Can device uuid"
