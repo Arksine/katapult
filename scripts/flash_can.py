@@ -457,7 +457,7 @@ class CanSocket:
         try:
             self.cansock.bind((intf,))
         except Exception:
-            raise FlashCanError("Unable to bind socket to can0")
+            raise FlashCanError("Unable to bind socket to %s" % (intf))
         self.closed = False
         self.cansock.setblocking(False)
         self._loop.add_reader(
