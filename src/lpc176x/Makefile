@@ -8,9 +8,9 @@ dirs-y += src/lpc176x src/generic lib/lpc176x/device
 CFLAGS += -mthumb -mcpu=cortex-m3 -Ilib/lpc176x/device -Ilib/cmsis-core
 CFLAGS += -Wno-nonnull
 
-CFLAGS_canboot.elf += --specs=nano.specs --specs=nosys.specs
-CFLAGS_canboot.elf += -T $(OUT)src/generic/armcm_link.ld
-$(OUT)canboot.elf: $(OUT)src/generic/armcm_link.ld
+CFLAGS_katapult.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_katapult.elf += -T $(OUT)src/generic/armcm_link.ld
+$(OUT)katapult.elf: $(OUT)src/generic/armcm_link.ld
 
 # Add source files
 mcu-y = lpc176x/main.c lpc176x/gpio.c lpc176x/flash.c

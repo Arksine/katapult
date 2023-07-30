@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Tool to check final CanBoot binary size
+# Tool to check final Katapult binary size
 #
 # Copyright (C) 2022  Kevin O'Connor <kevin@koconnor.net>
 #
@@ -7,7 +7,7 @@
 import sys, argparse, struct
 
 ERR_MSG = """
-The CanBoot binary is too large for the configured LAUNCH_APP_ADDRESS.
+The Katapult binary is too large for the configured LAUNCH_APP_ADDRESS.
 
 Rerun "make menuconfig" and either increase the LAUNCH_APP_ADDRESS or
 disable features to reduce the final binary size.
@@ -43,7 +43,7 @@ def update_lpc176x_checksum(data):
     return data28 + struct.pack('<I', csum) + data[32:]
 
 def main():
-    parser = argparse.ArgumentParser(description="Build CanBoot binary")
+    parser = argparse.ArgumentParser(description="Build Katapult binary")
     parser.add_argument("-b", "--base", help="Address of flash start")
     parser.add_argument("-s", "--start", help="Address of application start")
     parser.add_argument("-l", "--lpc176x", action='store_true',

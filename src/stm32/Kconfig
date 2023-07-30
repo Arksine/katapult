@@ -231,7 +231,7 @@ config STM32_DFU_ROM_ADDRESS
 ######################################################################
 
 choice
-    prompt "Build CanBoot deployment application"
+    prompt "Build Katapult deployment application"
     config STM32_FLASH_START_0000
         bool "Do not build"
     config STM32_FLASH_START_2000

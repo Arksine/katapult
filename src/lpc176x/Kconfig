@@ -63,7 +63,7 @@ config STACK_SIZE
 ######################################################################
 
 choice
-    prompt "Build CanBoot deployment application"
+    prompt "Build Katapult deployment application"
     config LPC_FLASH_START_0000
         bool "Do not build"
     config LPC_FLASH_START_4000

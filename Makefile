@@ -1,4 +1,4 @@
-# CanBoot build system
+# Katapult build system
 #
 # Copyright (C) 2016-2020  Kevin O'Connor <kevin@koconnor.net>
 #
@@ -35,12 +35,12 @@ CFLAGS := -I$(OUT) -Isrc -I$(OUT)board-generic/ -std=gnu11 -Os -MD \
     -ffunction-sections -fdata-sections -fno-delete-null-pointer-checks
 CFLAGS += -flto -fwhole-program -fno-use-linker-plugin -ggdb3
 
-OBJS_canboot.elf = $(patsubst %.c, $(OUT)src/%.o,$(src-y))
-OBJS_canboot.elf += $(OUT)compile_time_request.o
-CFLAGS_canboot.elf = $(CFLAGS) -Wl,--gc-sections
+OBJS_katapult.elf = $(patsubst %.c, $(OUT)src/%.o,$(src-y))
+OBJS_katapult.elf += $(OUT)compile_time_request.o
+CFLAGS_katapult.elf = $(CFLAGS) -Wl,--gc-sections
 
 OBJS_deployer.elf = $(patsubst %.c, $(OUT)src/%.o,$(deployer-y))
-OBJS_deployer.elf += $(OUT)deployer_ctr.o $(OUT)canboot_payload.o
+OBJS_deployer.elf += $(OUT)deployer_ctr.o $(OUT)katapult_payload.o
 CFLAGS_deployer.elf = $(CFLAGS) -Wl,--gc-sections
 
 BUILDBINARY_FLAGS =
@@ -48,7 +48,7 @@ BUILDBINARY_FLAGS =
 CPPFLAGS = -I$(OUT) -P -MD -MT $@
 
 # Default targets
-target-y := $(OUT)canboot.elf $(OUT)canboot.bin
+target-y := $(OUT)katapult.elf $(OUT)katapult.bin
 
 all:
 
@@ -74,25 +74,25 @@ $(OUT)%.ld: %.lds.S $(OUT)autoconf.h
 	@echo "  Preprocessing $@"
 	$(Q)$(CPP) -I$(OUT) -P -MD -MT $@ $< -o $@
 
-$(OUT)canboot.elf: $(OBJS_canboot.elf)
+$(OUT)katapult.elf: $(OBJS_katapult.elf)
 	@echo "  Linking $@"
-	$(Q)$(CC) $(OBJS_canboot.elf) $(CFLAGS_canboot.elf) -o $@
+	$(Q)$(CC) $(OBJS_katapult.elf) $(CFLAGS_katapult.elf) -o $@
 	$(Q)scripts/check-gcc.sh $@ $(OUT)compile_time_request.o
 
-$(OUT)canboot.bin: $(OUT)canboot.elf ./scripts/buildbinary.py
+$(OUT)katapult.bin: $(OUT)katapult.elf ./scripts/buildbinary.py
 	@echo "  Creating bin file $@"
-	$(Q)$(OBJCOPY) -O binary $< $(OUT)canboot.work
-	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_LAUNCH_APP_ADDRESS) $(BUILDBINARY_FLAGS) $(OUT)canboot.work -c $(OUT)canboot_payload.c $@
+	$(Q)$(OBJCOPY) -O binary $< $(OUT)katapult.work
+	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_LAUNCH_APP_ADDRESS) $(BUILDBINARY_FLAGS) $(OUT)katapult.work -c $(OUT)katapult_payload.c $@
 
-$(OUT)canboot_payload.o: $(OUT)canboot.bin
+$(OUT)katapult_payload.o: $(OUT)katapult.bin
 	@echo "  Compiling $@"
-	$(Q)$(CC) $(CFLAGS) -c $(OUT)canboot_payload.c -o $@
+	$(Q)$(CC) $(CFLAGS) -c $(OUT)katapult_payload.c -o $@
 
-################ CanBoot "deployer" build rules
+################ Katapult "deployer" build rules
 
 target-$(CONFIG_BUILD_DEPLOYER) += $(OUT)deployer.elf $(OUT)deployer.bin
 
-$(OUT)deployer.elf: $(OBJS_deployer.elf) $(OUT)canboot.bin
+$(OUT)deployer.elf: $(OBJS_deployer.elf) $(OUT)katapult.bin
 	@echo "  Linking $@"
 	$(Q)$(CC) $(OBJS_deployer.elf) $(CFLAGS_deployer.elf) -o $@
 

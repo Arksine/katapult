@@ -22,9 +22,9 @@ CFLAGS-$(CONFIG_MACH_STM32G0) += -mcpu=cortex-m0plus -Ilib/stm32g0/include
 CFLAGS-$(CONFIG_MACH_STM32H7) += -mcpu=cortex-m7 -Ilib/stm32h7/include
 CFLAGS += $(CFLAGS-y) -D$(MCU_UPPER) -mthumb -Ilib/cmsis-core -Ilib/fast-hash
 
-CFLAGS_canboot.elf += --specs=nano.specs --specs=nosys.specs
-CFLAGS_canboot.elf += -T $(OUT)src/generic/armcm_link.ld
-$(OUT)canboot.elf: $(OUT)src/generic/armcm_link.ld
+CFLAGS_katapult.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_katapult.elf += -T $(OUT)src/generic/armcm_link.ld
+$(OUT)katapult.elf: $(OUT)src/generic/armcm_link.ld
 
 # Add source files
 mcu-y = stm32/gpio.c stm32/flash.c stm32/clockline.c stm32/dfu_reboot.c

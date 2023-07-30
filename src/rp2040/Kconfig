@@ -88,7 +88,7 @@ config RP2040_STAGE2_CLKDIV
 ######################################################################
 
 choice
-    prompt "Build CanBoot deployment application"
+    prompt "Build Katapult deployment application"
     config RP2040_FLASH_START_0000
         bool "Do not build"
     config RP2040_FLASH_START_4000
