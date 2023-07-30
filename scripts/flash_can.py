@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Script to upload software via Can Bootloader
+# Script to upload software via Katapult
 #
 # Copyright (C) 2022 Eric Callahan <arksine.code@gmail.com>
 #
@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.INFO)
 CAN_FMT = "<IB3x8s"
 CAN_READER_LIMIT = 1024 * 1024
 
-# Canboot Defs
+# Katapult Defs
 CMD_HEADER = b'\x01\x88'
 CMD_TRAILER = b'\x99\x03'
 BOOTLOADER_CMDS = {
@@ -98,7 +98,7 @@ class CanFlasher:
             mcu_type = mcu_type[:-1]
         mcu_type = mcu_type.decode()
         output_line(
-            f"CanBoot Connected\nProtocol Version: {proto_version}\n"
+            f"Katapult Connected\nProtocol Version: {proto_version}\n"
             f"Block Size: {self.block_size} bytes\n"
             f"Application Start: 0x{self.app_start_addr:4X}\n"
             f"MCU type: {mcu_type}"
@@ -401,7 +401,7 @@ class CanSocket:
         self.send(KLIPPER_ADMIN_ID, bytes(plist))
 
     async def _query_uuids(self) -> List[int]:
-        output_line("Checking for canboot nodes...")
+        output_line("Checking for Katapult nodes...")
         payload = bytes([CANBUS_CMD_QUERY_UNASSIGNED])
         self.admin_node.write(payload)
         curtime = self._loop.time()
@@ -419,7 +419,7 @@ class CanSocket:
                 continue
             app_names = {
                 KLIPPER_SET_NODE_CMD: "Klipper",
-                CANBUS_CMD_SET_NODEID: "CanBoot"
+                CANBUS_CMD_SET_NODEID: "Katapult"
             }
             app = "Unknown"
             if len(resp) > 7:
@@ -427,7 +427,7 @@ class CanSocket:
             data = resp[1:7]
             output_line(f"Detected UUID: {data.hex()}, Application: {app}")
             uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(data)])
-            if uuid not in self.uuids and app == "CanBoot":
+            if uuid not in self.uuids and app == "Katapult":
                 self.uuids.append(uuid)
         return self.uuids
 
@@ -571,7 +571,7 @@ class SerialSocket:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Can Bootloader Flash Utility")
+        description="Katapult Flash Tool")
     parser.add_argument(
         "-d", "--device", metavar='<serial device>',
         help="Serial Device"
@@ -634,7 +634,7 @@ def main():
             sock = SerialSocket(loop)
             loop.run_until_complete(sock.run(args.device, args.baud, fpath))
     except Exception as e:
-        logging.exception("Can Flash Error")
+        logging.exception("Flash Error")
         sys.exit(-1)
     finally:
         if sock is not None:
@@ -642,7 +642,7 @@ def main():
     if args.query:
         output_line("Query Complete")
     else:
-        output_line("CAN Flash Success")
+        output_line("Flash Success")
 
 
 if __name__ == '__main__':
