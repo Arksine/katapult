@@ -1,5 +1,5 @@
 
-## CanBoot Protocol
+## Katapult Protocol
 
 ### Frame
 
