@@ -1,24 +1,24 @@
-# CanBoot
+# Katapult  (formerly known as CanBoot)
  Bootloader for ARM Cortex-M MCUs
 
  This bootloader was initially designed for CAN nodes to be used with
  [Klipper](https://github.com/Klipper3d/klipper).  The bootloader
  itself makes use of Klipper's hardware abstraction layer, stripped
- down to keep the footprint minimal. In addition to CAN, CanBoot now
+ down to keep the footprint minimal. In addition to CAN, Katapult now
  supports USB and UART interfaces.
 
 Currently lpc176x, stm32 and rp2040 MCUs are supported.  CAN support is currently
 limited to stm32 F-series and rp2040 devices.
 
-CanBoot is licensed under the [GNU GPL v3](/LICENSE).
+Katapult is licensed under the [GNU GPL v3](/LICENSE).
 
 ## Building
 
-CanBoot also uses Klipper's build system.  The build is configured
+Katapult also uses Klipper's build system.  The build is configured
 with menuconfig.  The steps to fetch and build are as follows:
 ```
-git clone https://github.com/Arksine/CanBoot
-cd CanBoot
+git clone https://github.com/Arksine/katapult
+cd katapult
 make menuconfig
 make
 ```
@@ -26,7 +26,7 @@ make
 The menuconfig will present the following options:
 - `Microcontroller Architecture`: Choose between lpc176x, stm32 and rp2040
 - `Processor model`: Options depend on the chosen architecture
-- `Build CanBoot deployment application`: See the [deployer](#canboot-deployer)
+- `Build Katapult deployment application`: See the [deployer](#katapult-deployer)
    section below
 - `Disable SWD at startup`:  This is an option for GigaDevice STM32F103
   clones.  Note that this is untested for the bootloader, GigaDevice clones
@@ -59,31 +59,31 @@ devices via UART and STM32F042/72 devices over DFU.  ST's STM32CubeProgrammer
 software can facilitate all of these methods, however there are also other
 tools such as `stm32flash` (UART) and `dfu-util` (USB DFU).
 
-NOTE:  Prior to flashing CanBoot it is recommended to do a full chip erase.
-Doing so allows CanBoot to detect that no application is present and enter
+NOTE:  Prior to flashing Katapult it is recommended to do a full chip erase.
+Doing so allows Katapult to detect that no application is present and enter
 the bootloader.  This is required to enter the bootloader if you have not
 configured an alternative method of entry.
 
 NOTE RP2040: To flash rp2040 targets mcu should be rebooted in system boot mode
 (usually with _BOOT_ button pressed). After that `make flash` command
 could be used. You could also use rp2040 specific mass storage device
-drag-and-drop method to flash `canboot.uf2` from `out` folder. Flashing canboot
+drag-and-drop method to flash `katapult.uf2` from `out` folder. Flashing Katapult
 will erase main application (i.e. klipper), so it should be uploaded
-with canboot again.
+with Katapult again.
 
 ## Uploading Klipper
 1) Make sure the `klipper` service stopped.
 2) Build Klipper with CAN support and with the a bootloader offset matching that
-   of the "application offset" in CanBoot.
+   of the "application offset" in Katapult.
 3) Enter the bootloader.  This will occur automatically if no program is detected.
-   If you built CanBoot with an alternative method of entry you may use that.
+   If you built Katapult with an alternative method of entry you may use that.
    If upgrading from a currently flashed version of Klipper the `flash_can.py`
    script will command the device to enter the bootloader (currently for CAN
    devices only).
 3) Run the flash script:
    For CAN Devices:
    ```
-   cd ~/CanBoot/scripts
+   cd ~/katapult/scripts
    python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
    ```
    Replace <uuid> with the appropriate uuid for your can device.  If
@@ -144,34 +144,34 @@ When the `-r` option is supplied in addition to `-u` (and optionally `-i`)
 the script will request that the node enter the bootloader.  The script will
 then immediately exit, no attempt will be made to upload a new binary over the
 canbus.  This is particularly useful for Klipper devices running "USB to CAN
-bridge mode". These devices upload firmware using DFU and/or CanBoot-USB. This
+bridge mode". These devices upload firmware using DFU and/or Katapult-USB. This
 option allows the user to enter the bootloader without physical access to the
 board, then use the appropriate tool (`dfu-util` or `flash_can.py -d`) to
 upload the new binary.
 
-## CanBoot Deployer
+## Katapult Deployer
 
-The CanBoot deployer allows a user to overwrite their existing bootloader
-with CanBoot, allowing modification and updates without a programmer.  It
+The Katapult deployer allows a user to overwrite their existing bootloader
+with Katapult, allowing modification and updates without a programmer.  It
 is *strongly* recommended that an alternate recovery (programmer, DFU, etc)
 method is available in the event that something goes wrong during deployment.
 If coming from a stock bootloader it is also recommended that the user create
 a backup before proceeding.
 
-To build the deployer set the `Build CanBoot deployment application` option
+To build the deployer set the `Build Katapult deployment application` option
 in the menuconfig to your existing bootloader offset.  The additional settings
-apply to the CanBoot binary, configure them just as you would without the
+apply to the Katapult binary, configure them just as you would without the
 deployer.  Save your settings and build with `make`.
 
 This will result in an additional binary in the `out` folder, `deployer.bin`.
 Flash `deployer.bin` with your existing bootloader (SD Card, HID, an older
-version of CanBoot, etc).  Once complete, the deployer should reset the
-device and enter CanBoot.  Now you are ready to use CanBoot to flash an
+version of Katapult, etc).  Once complete, the deployer should reset the
+device and enter Katapult.  Now you are ready to use Katapult to flash an
 application, such as Klipper.
 
 ## Contributing
 
-CanBoot is effectively a fork of Klipper's MCU source.  As such, it is appropriate
+Katapult is effectively a fork of Klipper's MCU source.  As such, it is appropriate
 to retain similar contributing guidelines as Klipper.  Commits should be formatted
 as follows:
 
