@@ -82,21 +82,21 @@ with Katapult again.
    of the "application offset" in Katapult.
 3) Enter the bootloader.  This will occur automatically if no program is detected.
    If you built Katapult with an alternative method of entry you may use that.
-   If upgrading from a currently flashed version of Klipper the `flash_can.py`
+   If upgrading from a currently flashed version of Klipper the `flashtool.py`
    script will command the device to enter the bootloader (currently for CAN
    devices only).
 3) Run the flash script:
    For CAN Devices:
    ```
    cd ~/katapult/scripts
-   python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
+   python3 flashtool.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
    ```
    Replace <uuid> with the appropriate uuid for your can device.  If
    the device has not been previouisly flashed with Klipper, it is possible
    to query the bootloader for the UUID:
 
    ```
-   flash_can.py -i can0 -q
+   flashtool.py -i can0 -q
    ```
 
    For USB/UART devices:
@@ -106,7 +106,7 @@ with Katapult again.
    pip3 install pyserial
    ```
    ```
-   python3 flash_can.py -d <serial device> -b <baud_rate>
+   python3 flashtool.py -d <serial device> -b <baud_rate>
    ```
    Replace `<serial_device>` the the path to the USB/UART device you wish to
    flash.  The `<baud_rate>` is only necessary for UART devices, and defaults
