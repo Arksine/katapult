@@ -107,18 +107,17 @@ with Katapult again.
    flash.  The `<baud_rate>` is only necessary for UART devices, and defaults
    to 250000 baud if omitted.
 
-## FlashCan usage
+## Flash Tool usage
 
-Running `flash_can.py -h` to display help:
+Run `scripts/flashtool.py -h` to display help:
 
 ```
-usage: flash_can.py [-h] [-d <serial device>] [-b <baud rate>]
-                    [-i <can interface>] [-f <klipper.bin>] [-u <uuid>] [-q]
-                    [-v]
+usage: flashtool.py [-h] [-d <serial device>] [-b <baud rate>] [-i <can interface>]
+                    [-f <klipper.bin>] [-u <uuid>] [-q] [-v] [-r]
 
-Can Bootloader Flash Utility
+Katapult Flash Tool
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -d <serial device>, --device <serial device>
                         Serial Device
@@ -136,9 +135,19 @@ optional arguments:
                         Requests the bootloader and exits (CAN only)
 ```
 
-The `interface` option defaults to `can0` if omitted.  The `firmware` option
-defaults to `~/klipper/out/klipper.bin`.  The `uuid` must be specified unless
-the user is running a query with `-q`.
+### Can Programming
+
+The `-i` option defaults to `can0` if omitted.  The `uuid` option is required
+for programming.  The `-q` option will query the CAN interface for unassigned
+nodes, returning their UUIDs.
+
+The `-f` option defaults to `~/klipper/out/klipper.bin` when omitted.
+
+### Serial Programming (USB or UART)
+
+The `-d` option is required.  The `-b` option defaults to `250000` if omitted.
+
+### Request Bootloader (CAN Devices Only)
 
 When the `-r` option is supplied in addition to `-u` (and optionally `-i`)
 the script will request that the node enter the bootloader.  The script will
@@ -146,7 +155,7 @@ then immediately exit, no attempt will be made to upload a new binary over the
 canbus.  This is particularly useful for Klipper devices running "USB to CAN
 bridge mode". These devices upload firmware using DFU and/or Katapult-USB. This
 option allows the user to enter the bootloader without physical access to the
-board, then use the appropriate tool (`dfu-util` or `flash_can.py -d`) to
+board, then use the appropriate tool (`dfu-util` or `flashtool.py -d`) to
 upload the new binary.
 
 ## Katapult Deployer
