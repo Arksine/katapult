@@ -12,6 +12,11 @@ limited to stm32 F-series and rp2040 devices.
 
 Katapult is licensed under the [GNU GPL v3](/LICENSE).
 
+Note: References to CanBoot remain both in the source of this repo and
+in related projects such as Klipper.  Some of these must remain indefinitely
+for compatibility.  Documentation and source code references that do not break
+compatibility will be updated over time.
+
 ## Building
 
 Katapult also uses Klipper's build system.  The build is configured
