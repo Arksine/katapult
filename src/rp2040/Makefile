@@ -48,6 +48,8 @@ $(OUT)katapult.uf2: $(OUT)katapult.elf $(OUT)lib/rp2040/elf2uf2/elf2uf2
 ifeq ($(CONFIG_RP2040_ADD_BOOT_SIGNATURE), y)
 	$(Q)$(PYTHON) ./scripts/uf2_append_boot_signature.py --address $(CONFIG_LAUNCH_APP_ADDRESS) --input $(OUT)katapult.uf2 --output $(OUT)katapult.uf2
 endif
+	@echo "  Creating legacy uf2 file $(OUT)canboot.uf2"
+	$(Q)cp $@ $(OUT)canboot.uf2
 
 lib/rp2040_flash/rp2040_flash:
 	@echo "  Building rp2040_flash"

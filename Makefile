@@ -83,6 +83,8 @@ $(OUT)katapult.bin: $(OUT)katapult.elf ./scripts/buildbinary.py
 	@echo "  Creating bin file $@"
 	$(Q)$(OBJCOPY) -O binary $< $(OUT)katapult.work
 	$(Q)$(PYTHON) ./scripts/buildbinary.py -b $(CONFIG_FLASH_START) -s $(CONFIG_LAUNCH_APP_ADDRESS) $(BUILDBINARY_FLAGS) $(OUT)katapult.work -c $(OUT)katapult_payload.c $@
+	@echo "  Creating legacy binary $(OUT)canboot.bin"
+	$(Q)cp $@ $(OUT)canboot.bin
 
 $(OUT)katapult_payload.o: $(OUT)katapult.bin
 	@echo "  Compiling $@"
