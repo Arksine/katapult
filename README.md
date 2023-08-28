@@ -99,6 +99,11 @@ with Katapult again.
    flashtool.py -i can0 -q
    ```
 
+   **NOTE: A query should only be performed when a single can node is on
+   the network.  Attempting to query multiple nodes may result in transmission
+   errors that can force a node into a "bus off" state.  When a node enters
+   "bus off" it becomes unresponsive.  The node must be reset to recover.**
+
    For USB/UART devices:
    Before flashing, make sure pyserial is installed.  This step only needs to
    be performed once:
