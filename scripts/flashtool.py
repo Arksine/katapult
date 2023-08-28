@@ -468,12 +468,6 @@ class CanSocket:
             return
         await asyncio.sleep(.5)
         self._reset_nodes()
-        await asyncio.sleep(.5)
-        id_list = await self._query_uuids()
-        if uuid not in id_list:
-            raise FlashCanError(
-                f"Unable to find node matching UUID: {uuid:012x}"
-            )
         node = self._set_node_id(uuid)
         flasher = CanFlasher(node, fw_path)
         await asyncio.sleep(.5)
