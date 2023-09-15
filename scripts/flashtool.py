@@ -58,6 +58,8 @@ KLIPPER_ADMIN_ID = 0x3f0
 KLIPPER_SET_NODE_CMD = 0x01
 KLIPPER_REBOOT_CMD = 0x02
 
+KLIPPER_SERIAL_BOOTLOADER_REQUEST = b' \x1c Request Serial Bootloader!! ~'
+
 # CAN Admin Defs
 CANBUS_ID_ADMIN = 0x3f0
 CANBUS_ID_ADMIN_RESP = 0x3f1
@@ -524,6 +526,13 @@ class SerialSocket:
             self.close()
         self.node.feed_data(data)
 
+    def _request_bootloader(self) -> None:
+        try:
+            self.serial.write(KLIPPER_SERIAL_BOOTLOADER_REQUEST)
+        except self.serial_error as e:
+            logging.exception("Error while sending serial bootloader request")
+            self.close()
+
     def send(self, can_id: int, payload: bytes = b"") -> None:
         try:
             self.serial.write(payload)
@@ -531,8 +540,8 @@ class SerialSocket:
             logging.exception("Error on serial write")
             self.close()
 
-    async def run(self, intf: str, baud: int, fw_path: pathlib.Path) -> None:
-        if not fw_path.is_file():
+    async def run(self, intf: str, baud: int, fw_path: pathlib.Path, req_only: bool) -> None:
+        if not fw_path.is_file() and not req_only:
             raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
         try:
             import serial
@@ -550,6 +559,10 @@ class SerialSocket:
         except (OSError, IOError, self.serial_error) as e:
             raise FlashCanError("Unable to open serial port: %s" % (e,))
         self.serial = serial_dev
+        if req_only:
+            self._request_bootloader()
+            output_line("Bootloader request command sent")
+            return
         self._loop.add_reader(self.serial.fileno(), self._handle_response)
         flasher = CanFlasher(self.node, fw_path)
         try:
@@ -602,7 +615,7 @@ def main():
     )
     parser.add_argument(
         "-r", "--request-bootloader", action="store_true",
-        help="Requests the bootloader and exits (CAN only)"
+        help="Requests the bootloader and exits"
     )
 
     args = parser.parse_args()
@@ -632,7 +645,7 @@ def main():
                     "The 'device' option must be specified to flash a device"
                 )
             sock = SerialSocket(loop)
-            loop.run_until_complete(sock.run(args.device, args.baud, fpath))
+            loop.run_until_complete(sock.run(args.device, args.baud, fpath, req_only))
     except Exception as e:
         logging.exception("Flash Error")
         sys.exit(-1)
