@@ -170,6 +170,11 @@ upload the new binary.
 
 ## Katapult Deployer
 
+**WARNING**: Make absolutely sure your Katapult build configuration is
+correct before uploading the deployer.  Overwriting your existing
+bootloader with an incorrectly configured build will brick your device
+and require a programmer to recover.
+
 The Katapult deployer allows a user to overwrite their existing bootloader
 with Katapult, allowing modification and updates without a programmer.  It
 is *strongly* recommended that an alternate recovery (programmer, DFU, etc)
