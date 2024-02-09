@@ -34,6 +34,7 @@ def crc16_ccitt(buf: Union[bytes, bytearray]) -> int:
         crc = ((data << 8) | (crc >> 8)) ^ (data >> 4) ^ (data << 3)
     return crc & 0xFFFF
 
+
 logging.basicConfig(level=logging.INFO)
 CAN_FMT = "<IB3x8s"
 CAN_READER_LIMIT = 1024 * 1024
@@ -127,7 +128,7 @@ class CanFlasher:
         crc = crc16_ccitt(out_cmd[2:])
         out_cmd.extend(struct.pack("<H", crc))
         out_cmd.extend(CMD_TRAILER)
-        err = Exception()
+        last_err = Exception()
         while tries:
             data = bytearray()
             recd_len = 0
@@ -144,14 +145,16 @@ class CanFlasher:
                         recd_len = data[3] * 4
                         read_done = len(data) == recd_len + 8
                         break
+            except asyncio.CancelledError:
+                raise
             except asyncio.TimeoutError:
                 logging.info(
                     f"Response for command {cmdname} timed out, "
                     f"{tries - 1} tries remaining"
                 )
             except Exception as e:
-                if type(e) != type(err) or str(e) != str(err):
-                    err = e
+                if type(e) is type(last_err) and e.args == last_err.args:
+                    last_err = e
                     logging.exception("Can Read Error")
             else:
                 trailer = data[-2:]
@@ -468,6 +471,7 @@ class CanSocket:
             return
         await asyncio.sleep(.5)
         self._reset_nodes()
+        await asyncio.sleep(1.0)
         node = self._set_node_id(uuid)
         flasher = CanFlasher(node, fw_path)
         await asyncio.sleep(.5)
@@ -513,7 +517,7 @@ class SerialSocket:
     def _handle_response(self) -> None:
         try:
             data = self.serial.read(4096)
-        except self.serial_error as e:
+        except self.serial_error:
             logging.exception("Error on serial read")
             self.close()
         self.node.feed_data(data)
@@ -521,7 +525,7 @@ class SerialSocket:
     def send(self, can_id: int, payload: bytes = b"") -> None:
         try:
             self.serial.write(payload)
-        except self.serial_error as e:
+        except self.serial_error:
             logging.exception("Error on serial write")
             self.close()
 
@@ -627,7 +631,7 @@ def main():
                 )
             sock = SerialSocket(loop)
             loop.run_until_complete(sock.run(args.device, args.baud, fpath))
-    except Exception as e:
+    except Exception:
         logging.exception("Flash Error")
         sys.exit(-1)
     finally:
