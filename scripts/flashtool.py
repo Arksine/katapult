@@ -68,7 +68,7 @@ CANBUS_CMD_CLEAR_NODE_ID = 0x12
 CANBUS_RESP_NEED_NODEID = 0x20
 CANBUS_NODEID_OFFSET = 128
 
-class FlashCanError(Exception):
+class FlashError(Exception):
     pass
 
 class CanFlasher:
@@ -94,7 +94,7 @@ class CanFlasher:
         self.app_start_addr = start_addr
         proto_version = ".".join([str(v) for v in reversed(ver_bytes[:3])])
         if self.block_size not in [64, 128, 256, 512]:
-            raise FlashCanError("Invalid Block Size: %d" % (self.block_size,))
+            raise FlashError("Invalid Block Size: %d" % (self.block_size,))
         while mcu_type and mcu_type[-1] == 0x00:
             mcu_type = mcu_type[:-1]
         mcu_type = mcu_type.decode()
@@ -110,7 +110,7 @@ class CanFlasher:
         ret = await self.send_command('GET_CANBUS_ID')
         mcu_uuid = sum([v << ((5 - i) * 8) for i, v in enumerate(ret[:6])])
         if mcu_uuid != uuid:
-            raise FlashCanError("UUID mismatch (%s vs %s)" % (uuid, mcu_uuid))
+            raise FlashError("UUID mismatch (%s vs %s)" % (uuid, mcu_uuid))
 
     async def send_command(
         self,
@@ -155,7 +155,7 @@ class CanFlasher:
             except Exception as e:
                 if type(e) is type(last_err) and e.args == last_err.args:
                     last_err = e
-                    logging.exception("Can Read Error")
+                    logging.exception("Device Read Error")
             else:
                 trailer = data[-2:]
                 recd_crc, = struct.unpack("<H", data[-4:-2])
@@ -193,8 +193,7 @@ class CanFlasher:
             except asyncio.TimeoutError:
                 pass
             await asyncio.sleep(.1)
-        raise FlashCanError("Error sending command [%s] to Can Device"
-                            % (cmdname))
+        raise FlashError("Error sending command [%s] to Device" % (cmdname))
 
     async def send_file(self):
         last_percent = 0
@@ -224,7 +223,7 @@ class CanFlasher:
                     )
                     await asyncio.sleep(.1)
                 else:
-                    raise FlashCanError(
+                    raise FlashError(
                         f"Flash write failed, block address 0x{recd_addr:4X}"
                     )
                 flash_address += self.block_size
@@ -258,7 +257,7 @@ class CanFlasher:
                 await asyncio.sleep(.1)
             else:
                 output_line("Error")
-                raise FlashCanError("Block Request Error, block: %d" % (i,))
+                raise FlashError("Block Request Error, block: %d" % (i,))
             ver_sha.update(resp[4:])
             pct = int(i * self.block_size / float(self.file_size) * 100 + .5)
             if pct >= last_percent + 2:
@@ -267,7 +266,7 @@ class CanFlasher:
         ver_hex = ver_sha.hexdigest().upper()
         fw_hex = self.fw_sha.hexdigest().upper()
         if ver_hex != fw_hex:
-            raise FlashCanError("Checksum mismatch: Expected %s, Received %s"
+            raise FlashError("Checksum mismatch: Expected %s, Received %s"
                                 % (fw_hex, ver_hex))
         output_line("]\n\nVerification Complete: SHA = %s" % (ver_hex))
 
@@ -456,11 +455,11 @@ class CanSocket:
         self, intf: str, uuid: int, fw_path: pathlib.Path, req_only: bool
     ) -> None:
         if not req_only and not fw_path.is_file():
-            raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
+            raise FlashError("Invalid firmware path '%s'" % (fw_path))
         try:
             self.cansock.bind((intf,))
         except Exception:
-            raise FlashCanError("Unable to bind socket to can0")
+            raise FlashError("Unable to bind socket to can0")
         self.closed = False
         self.cansock.setblocking(False)
         self._loop.add_reader(
@@ -490,7 +489,7 @@ class CanSocket:
         try:
             self.cansock.bind((intf,))
         except Exception:
-            raise FlashCanError("Unable to bind socket to can0")
+            raise FlashError("Unable to bind socket to can0")
         self.closed = False
         self.cansock.setblocking(False)
         self._loop.add_reader(
@@ -531,11 +530,11 @@ class SerialSocket:
 
     async def run(self, intf: str, baud: int, fw_path: pathlib.Path) -> None:
         if not fw_path.is_file():
-            raise FlashCanError("Invalid firmware path '%s'" % (fw_path))
+            raise FlashError("Invalid firmware path '%s'" % (fw_path))
         try:
             import serial
         except ModuleNotFoundError:
-            raise FlashCanError(
+            raise FlashError(
                 "The pyserial python package was not found.  To install "
                 "run the following command in a terminal: \n\n"
                 "   pip3 install pyserial\n\n")
@@ -546,7 +545,7 @@ class SerialSocket:
             serial_dev.port = intf
             serial_dev.open()
         except (OSError, IOError, self.serial_error) as e:
-            raise FlashCanError("Unable to open serial port: %s" % (e,))
+            raise FlashError("Unable to open serial port: %s" % (e,))
         self.serial = serial_dev
         self._loop.add_reader(self.serial.fileno(), self._handle_response)
         flasher = CanFlasher(self.node, fw_path)
@@ -619,16 +618,18 @@ def main():
                 loop.run_until_complete(sock.run_query(intf))
             else:
                 if args.uuid is None:
-                    raise FlashCanError(
+                    raise FlashError(
                         "The 'uuid' option must be specified to flash a device"
                     )
+                output_line(f"Flashing CAN UUID {args.uuid} on interface {intf}")
                 uuid = int(args.uuid, 16)
                 loop.run_until_complete(sock.run(intf, uuid, fpath, req_only))
         else:
             if args.device is None:
-                raise FlashCanError(
+                raise FlashError(
                     "The 'device' option must be specified to flash a device"
                 )
+            output_line(f"Flashing Serial Device {args.device}, baud {args.baud}")
             sock = SerialSocket(loop)
             loop.run_until_complete(sock.run(args.device, args.baud, fpath))
     except Exception:
