@@ -8,7 +8,7 @@ dirs-y += src/rp2040 src/generic lib/rp2040/elf2uf2 lib/fast-hash lib/can2040 li
 CFLAGS += -mcpu=cortex-m0plus -mthumb -Ilib/cmsis-core
 CFLAGS += -Ilib/rp2040 -Ilib/rp2040/cmsis_include -Ilib/fast-hash -Ilib/can2040 -Ilib/rp2040/pico/flash/ -Ilib/rp2040/pico/bootrom/
 
-CFLAGS_katapult.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_katapult.elf += -nostdlib -lgcc -lc_nano
 CFLAGS_katapult.elf += -T $(OUT)src/rp2040/rp2040_link.ld
 
 # Add source files
@@ -62,6 +62,6 @@ flash: $(OUT)katapult.uf2 lib/rp2040_flash/rp2040_flash
 
 # Deployer build
 deployer-y += generic/armcm_boot.c generic/armcm_reset.c $(mcu-y)
-CFLAGS_deployer.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_deployer.elf += -nostdlib -lgcc -lc_nano
 CFLAGS_deployer.elf += -T $(OUT)src/generic/armcm_deployer.ld
 $(OUT)deployer.elf: $(OUT)src/generic/armcm_deployer.ld

@@ -8,7 +8,7 @@ dirs-y += src/lpc176x src/generic lib/lpc176x/device
 CFLAGS += -mthumb -mcpu=cortex-m3 -Ilib/lpc176x/device -Ilib/cmsis-core
 CFLAGS += -Wno-nonnull
 
-CFLAGS_katapult.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_katapult.elf += -nostdlib -lgcc -lc_nano
 CFLAGS_katapult.elf += -T $(OUT)src/generic/armcm_link.ld
 $(OUT)katapult.elf: $(OUT)src/generic/armcm_link.ld
 
@@ -26,6 +26,6 @@ BUILDBINARY_FLAGS = -l
 
 # Deployer build
 deployer-y += generic/armcm_boot.c generic/armcm_reset.c $(mcu-y)
-CFLAGS_deployer.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_deployer.elf += -nostdlib -lgcc -lc_nano
 CFLAGS_deployer.elf += -T $(OUT)src/generic/armcm_deployer.ld
 $(OUT)deployer.elf: $(OUT)src/generic/armcm_deployer.ld

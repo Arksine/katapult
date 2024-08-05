@@ -22,7 +22,7 @@ CFLAGS-$(CONFIG_MACH_STM32G0) += -mcpu=cortex-m0plus -Ilib/stm32g0/include
 CFLAGS-$(CONFIG_MACH_STM32H7) += -mcpu=cortex-m7 -Ilib/stm32h7/include
 CFLAGS += $(CFLAGS-y) -D$(MCU_UPPER) -mthumb -Ilib/cmsis-core -Ilib/fast-hash
 
-CFLAGS_katapult.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_katapult.elf += -nostdlib -lgcc -lc_nano
 CFLAGS_katapult.elf += -T $(OUT)src/generic/armcm_link.ld
 $(OUT)katapult.elf: $(OUT)src/generic/armcm_link.ld
 
@@ -67,6 +67,6 @@ src-$(CONFIG_CANSERIAL) += $(canbus-src-y) generic/canbus.c stm32/chipid.c
 
 # Deployer build
 deployer-y += generic/armcm_boot.c generic/armcm_reset.c $(mcu-y)
-CFLAGS_deployer.elf += --specs=nano.specs --specs=nosys.specs
+CFLAGS_deployer.elf += -nostdlib -lgcc -lc_nano
 CFLAGS_deployer.elf += -T $(OUT)src/generic/armcm_deployer.ld
 $(OUT)deployer.elf: $(OUT)src/generic/armcm_deployer.ld
