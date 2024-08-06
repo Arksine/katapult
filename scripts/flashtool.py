@@ -89,17 +89,26 @@ class CanFlasher:
         output_line("Attempting to connect to bootloader")
         ret = await self.send_command('CONNECT')
         pinfo = ret[:12]
-        mcu_type = ret[12:]
+        mcu_info = ret[12:]
+        ver_bytes: bytes
         ver_bytes, start_addr, self.block_size = struct.unpack("<4sII", pinfo)
         self.app_start_addr = start_addr
-        proto_version = ".".join([str(v) for v in reversed(ver_bytes[:3])])
+        self.software_version = "?"
+        self.proto_version = tuple([v for v in reversed(ver_bytes[:3])])
+        proto_version_str = ".".join([str(v) for v in self.proto_version])
         if self.block_size not in [64, 128, 256, 512]:
             raise FlashError("Invalid Block Size: %d" % (self.block_size,))
-        while mcu_type and mcu_type[-1] == 0x00:
-            mcu_type = mcu_type[:-1]
-        mcu_type = mcu_type.decode()
+        mcu_info.rstrip(b"\x00")
+        if self.proto_version >= (1, 1, 0):
+            mcu_bytes, sv_bytes = mcu_info.split(b"\x00", maxsplit=1)
+            mcu_type = mcu_bytes.decode()
+            self.software_version = sv_bytes.decode()
+        else:
+            mcu_type = mcu_info.decode()
         output_line(
-            f"Katapult Connected\nProtocol Version: {proto_version}\n"
+            f"Katapult Connected\n"
+            f"Software Version: {self.software_version}\n"
+            f"Protocol Version: {proto_version_str}\n"
             f"Block Size: {self.block_size} bytes\n"
             f"Application Start: 0x{self.app_start_addr:4X}\n"
             f"MCU type: {mcu_type}"

@@ -34,11 +34,11 @@ Initiates communication with the bootloader.  This command has no payload:
 <0x01><0x88><0x11><0x00><CRC><0x99><0x03>
 ```
 
-Responds with [acknowledged](#acknowledged-0xa0) containing a 16 byte payload
+Responds with [acknowledged](#acknowledged-0xa0) containing a variable length payload
 in the following format:
 
 ```
-<4 byte orig_command><4 byte protocol_version><4 byte start_address><4 byte block_size><n byte mcu_type_string>
+<4 byte orig_command><4 byte protocol_version><4 byte start_address><4 byte block_size><n byte mcu_type_string><1 null byte><n byte software_version_string>
 ```
 
 - `orig_command` - must be `0x11`
@@ -51,6 +51,8 @@ in the following format:
 - `block_size` - the size of a block (in bytes) expected in the `send block` and
   `request block` commands.  Typically this should be 64 bytes.
 - `mcu_type_string` - The type of micro-controller (eg, "stm32f103xe").
+- `software_version_string` - The software version as reported by
+  `git describe --tags --always --long --dirty`.
 
 
 #### Send Block: `0x12`

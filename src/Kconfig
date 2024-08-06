@@ -1,6 +1,6 @@
 # Main Kconfig settings
 
-VERSION := $(shell, git describe --tags --long --always --dirty 2> /dev/null)
+VERSION := $(shell, ./scripts/make-version.sh 2> /dev/null)
 
 mainmenu "Katapult Configuration $(VERSION)"
 
@@ -120,3 +120,7 @@ config BUILD_DEPLOYER
 config HAVE_CHIPID
     bool
     default n
+
+config KATAPULT_VERSION
+    string
+    default "$(VERSION)"

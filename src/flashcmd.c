@@ -19,12 +19,17 @@ void
 command_connect(uint32_t *data)
 {
     uint32_t mcuwords = DIV_ROUND_UP(strlen(CONFIG_MCU), 4);
-    uint32_t out[6 + mcuwords];
-    memset(out, 0, (6 + mcuwords) * 4);
+    uint32_t version_words = DIV_ROUND_UP(strlen(CONFIG_KATAPULT_VERSION), 4);
+    uint32_t out[7 + mcuwords + version_words];
+    memset(out, 0, (7 + mcuwords + version_words) * 4);
     out[2] = cpu_to_le32(PROTO_VERSION);
     out[3] = cpu_to_le32(CONFIG_LAUNCH_APP_ADDRESS);
     out[4] = cpu_to_le32(CONFIG_BLOCK_SIZE);
     memcpy(&out[5], CONFIG_MCU, strlen(CONFIG_MCU));
+    memcpy(
+        &out[6 + mcuwords], CONFIG_KATAPULT_VERSION,
+        strlen(CONFIG_KATAPULT_VERSION)
+    );
     command_respond_ack(CMD_CONNECT, out, ARRAY_SIZE(out));
 }
 

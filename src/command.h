@@ -23,7 +23,7 @@
 #define shutdown(msg)     do { } while (1)
 #define try_shutdown(msg) do { } while (0)
 
-#define PROTO_VERSION   0x00010000      // Version 1.0.0
+#define PROTO_VERSION   0x00010100      // Version 1.1.0
 #define CMD_CONNECT       0x11
 #define CMD_RX_BLOCK      0x12
 #define CMD_RX_EOF        0x13
