@@ -65,6 +65,11 @@ canbus-src-$(CONFIG_HAVE_STM32_CANBUS) += stm32/can.c
 canbus-src-$(CONFIG_HAVE_STM32_FDCANBUS) += stm32/fdcan.c
 src-$(CONFIG_CANSERIAL) += $(canbus-src-y) generic/canbus.c stm32/chipid.c
 
+# Flash rules
+flash: $(OUT)katapult.bin
+	@echo "  Flashing $< to $(FLASH_DEVICE)"
+	$(Q) $(if $(NOSUDO),,sudo) dfu-util -d "$(FLASH_DEVICE)" -R -a 0 -s "$(CONFIG_FLASH_START)":leave -D $(OUT)katapult.bin
+
 # Deployer build
 deployer-y += generic/armcm_boot.c generic/armcm_reset.c $(mcu-y)
 CFLAGS_deployer.elf += -nostdlib -lgcc -lc_nano
