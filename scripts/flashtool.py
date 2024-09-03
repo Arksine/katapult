@@ -207,9 +207,11 @@ class CanFlasher:
             tries -= 1
             # clear the read buffer
             try:
-                await self.node.read(1024, timeout=.1)
+                ret = await self.node.read(1024, timeout=.25)
             except asyncio.TimeoutError:
                 pass
+            else:
+                logging.info(f"Read Buffer Contents: {ret!r}")
             await asyncio.sleep(.1)
         raise FlashError("Error sending command [%s] to Device" % (cmdname))
 
@@ -300,17 +302,17 @@ class CanNode:
         self._cansocket = cansocket
 
     async def read(
-        self, n: int = -1, timeout: Optional[float] = 2
+        self, n: int = -1, timeout: Optional[float] = 5.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.read(n), timeout)
 
     async def readexactly(
-        self, n: int, timeout: Optional[float] = 2
+        self, n: int, timeout: Optional[float] = 5.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.readexactly(n), timeout)
 
     async def readuntil(
-        self, sep: bytes = b"\x03", timeout: Optional[float] = 2
+        self, sep: bytes = b"\x03", timeout: Optional[float] = 5.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.readuntil(sep), timeout)
 
