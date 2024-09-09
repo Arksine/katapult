@@ -486,10 +486,10 @@ class CanSocket:
         self._loop.add_reader(
             self.cansock.fileno(), self._handle_can_response)
         self._jump_to_bootloader(uuid)
+        await asyncio.sleep(.5)
         if req_only:
             output_line("Bootloader request command sent")
             return
-        await asyncio.sleep(.5)
         self._reset_nodes()
         await asyncio.sleep(1.0)
         node = self._set_node_id(uuid)
