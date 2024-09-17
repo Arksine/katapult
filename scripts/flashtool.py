@@ -62,6 +62,8 @@ BOOTLOADER_CMDS = {
 
 ACK_SUCCESS = 0xa0
 NACK = 0xf1
+ACK_ERROR = 0xf2
+ACK_BUSY = 0xf3
 
 # Klipper Admin Defs (for jumping to bootloader)
 KLIPPER_ADMIN_ID = 0x3f0
@@ -192,6 +194,11 @@ class CanFlasher:
                         f"Command '{cmdname}': Frame CRC Mismatch, expected: "
                         f"{calc_crc}, received {recd_crc}"
                     )
+                elif recd_ack == ACK_ERROR:
+                    logging.info(f"Command '{cmdname}': Received Error Response")
+                elif recd_ack == ACK_BUSY:
+                    logging.info(f"Command '{cmdname}': Received busy signal")
+                    await asyncio.sleep(1.5)
                 elif recd_ack != ACK_SUCCESS:
                     logging.info(f"Command '{cmdname}': Received NACK")
                 elif cmd_response != cmd:
@@ -212,7 +219,7 @@ class CanFlasher:
                 pass
             else:
                 logging.info(f"Read Buffer Contents: {ret!r}")
-            await asyncio.sleep(.1)
+            await asyncio.sleep(.5)
         raise FlashError("Error sending command [%s] to Device" % (cmdname))
 
     async def send_file(self):
@@ -302,17 +309,17 @@ class CanNode:
         self._cansocket = cansocket
 
     async def read(
-        self, n: int = -1, timeout: Optional[float] = 5.
+        self, n: int = -1, timeout: Optional[float] = 2.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.read(n), timeout)
 
     async def readexactly(
-        self, n: int, timeout: Optional[float] = 5.
+        self, n: int, timeout: Optional[float] = 2.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.readexactly(n), timeout)
 
     async def readuntil(
-        self, sep: bytes = b"\x03", timeout: Optional[float] = 5.
+        self, sep: bytes = b"\x03", timeout: Optional[float] = 2.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.readuntil(sep), timeout)
 
