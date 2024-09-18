@@ -103,6 +103,13 @@ config SOFTWARE_SPI_PINS
 config SD_SPI_CS_PIN
     depends on SDCARD_SPI || SDCARD_SOFTWARE_SPI
     string "SD Card SPI CS Pin"
+config SD_FIRMWARE_NAME
+    depends on !RPXXXX_SD_DISABLED
+    string "Firmware file name"
+    default "firmware.bin"
+config FATFS_ENABLE_LFN
+    depends on !RPXXX_SD_DISABLED
+    bool "Enable Long File Name Support"
 
 endmenu
 

@@ -21,6 +21,9 @@ config SD_FIRMWARE_NAME
     string
     default "firmware.bin"
 
+config FATFS_ENABLE_LFN
+    bool
+
 choice
     prompt "Micro-controller Architecture"
     config MACH_LPC176X
