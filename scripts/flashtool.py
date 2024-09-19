@@ -7,6 +7,8 @@
 from __future__ import annotations
 import sys
 import os
+import zlib
+import json
 import asyncio
 import socket
 import struct
@@ -18,7 +20,7 @@ import pathlib
 import shutil
 import shlex
 import contextlib
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 HAS_SERIAL = True
 try:
     from serial import Serial, SerialException
@@ -89,12 +91,39 @@ class CanFlasher:
         fw_file: pathlib.Path
     ) -> None:
         self.node = node
-        self.fw_name = fw_file
+        self.firmware_path = fw_file
         self.fw_sha = hashlib.sha1()
         self.file_size = 0
         self.block_size = 64
         self.block_count = 0
         self.app_start_addr = 0
+        self.klipper_dict: Optional[Dict[str, Any]] = None
+        self._check_binary()
+
+    def _check_binary(self) -> None:
+        """
+        Extract klipper.dict from binary
+        """
+        fw_name = self.firmware_path.name.lower()
+        if fw_name != "klipper.bin":
+            return
+        bin_data = self.firmware_path.read_bytes()
+        klipper_dict: Dict[str, Any] = {}
+        for idx in range(len(bin_data)):
+            try:
+                uncmp_data = zlib.decompress(bin_data[idx:])
+                klipper_dict = json.loads(uncmp_data)
+            except (zlib.error, json.JSONDecodeError):
+                continue
+            if klipper_dict.get("app") == "Klipper":
+                break
+        if klipper_dict:
+            self.klipper_dict = klipper_dict
+            ver = klipper_dict.get("version", "")
+            bin_mcu = self.klipper_dict.get("config", {}).get("MCU", "")
+            output_line(
+                f"Detected Klipper binary version {ver}, MCU: {bin_mcu}"
+            )
 
     async def connect_btl(self) -> None:
         output_line("Attempting to connect to bootloader")
@@ -124,6 +153,15 @@ class CanFlasher:
             f"Application Start: 0x{self.app_start_addr:4X}\n"
             f"MCU type: {mcu_type}"
         )
+        if self.klipper_dict is not None:
+            bin_mcu = self.klipper_dict.get("config", {}).get("MCU", "")
+            if bin_mcu and bin_mcu != mcu_type:
+                output_line(
+                    "WARNING: MCU returned by Katapult does not match MCU"
+                    "stored in klipper.bin.\n"
+                    f"Katapult MCU: {mcu_type}\n"
+                    f"Klipper Binary MCU: {bin_mcu}"
+                )
 
     async def verify_canbus_uuid(self, uuid):
         output_line("Verifying canbus connection")
@@ -224,9 +262,9 @@ class CanFlasher:
 
     async def send_file(self):
         last_percent = 0
-        output_line("Flashing '%s'..." % (self.fw_name))
+        output_line("Flashing '%s'..." % (self.firmware_path))
         output("\n[")
-        with open(self.fw_name, 'rb') as f:
+        with open(self.firmware_path, 'rb') as f:
             f.seek(0, os.SEEK_END)
             self.file_size = f.tell()
             f.seek(0)
