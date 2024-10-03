@@ -32,7 +32,7 @@ The menuconfig will present the following options:
 - `Microcontroller Architecture`: Choose between lpc176x, stm32 and rp2040
 - `Processor model`: Options depend on the chosen architecture
 - `Build Katapult deployment application`: See the [deployer](#katapult-deployer)
-   section below
+   section below.
 - `Disable SWD at startup`:  This is an option for GigaDevice STM32F103
   clones.  Note that this is untested for the bootloader, GigaDevice clones
   may not work as expected.
@@ -51,8 +51,10 @@ The menuconfig will present the following options:
   enabled it is possible to enter the bootloader by pressing the reset button
   twice within a 500ms window.
 - `Enable bootloader entry on button (or gpio) state`:  Enable to use a gpio
-  to enter the booloader.
-  - `Button GPIO Pin`:  The Pin Name of te
+  to enter the bootloader.
+  - `Button GPIO Pin`:  The Pin Name of the GPIO to use as a button.  A hardware
+  pull-up can be enabled by prefixing a `^`, and a pull-down can be enabled by
+  prefixing a `~`.
 - `Enable Status Led`: Enables the option to select a status LED gpio.
   - `Status LED GPIO Pin`:  The pin name for your LED.  The Pin can be inverted
     if the LED is on when the pin is low.  For example, the status LED Pin for a
@@ -80,11 +82,15 @@ with Katapult again.
 1) Make sure the `klipper` service stopped.
 2) Build Klipper with CAN support and with the a bootloader offset matching that
    of the "application offset" in Katapult.
-3) Enter the bootloader.  This will occur automatically if no program is detected.
-   If you built Katapult with an alternative method of entry you may use that.
-   If upgrading from a currently flashed version of Klipper the `flashtool.py`
-   script will command the device to enter the bootloader (currently for CAN
-   devices only).
+3) Enter the bootloader.  Katapult automatically enters the bootloader if it
+   detects that the application area of flash is empty. When upgrading from a
+   currently flashed version of Klipper the `flashtool.py` script will command
+   USB and CANBus devices to enter the bootloader.  Note that "USB to CAN
+   bridge devices" and "UART" devices cannot be auto-detected.  If the device
+   is not in bootloader mode it is necessary to first manually request the
+   bootloader with the `-r` option, then rerun the script without `-r` to
+   perform the upload.  Devices running software other than Klipper will need
+   to request the bootloader with their own method.
 3) Run the flash script:
    For CAN Devices:
    ```
@@ -92,7 +98,7 @@ with Katapult again.
    python3 flashtool.py -i can0 -f ~/klipper/out/klipper.bin -u <uuid>
    ```
    Replace <uuid> with the appropriate uuid for your can device.  If
-   the device has not been previouisly flashed with Klipper, it is possible
+   the device has not been previously flashed with Klipper, it is possible
    to query the bootloader for the UUID:
 
    ```
@@ -105,10 +111,12 @@ with Katapult again.
    "bus off" it becomes unresponsive.  The node must be reset to recover.**
 
    For USB/UART devices:
-   Before flashing, make sure pyserial is installed.  This step only needs to
-   be performed once:
+   Before flashing, make sure pyserial is installed.  The command required
+   for installation depends on the the linux distribution.  Debian and Ubuntu
+   based distros can run the following commands:
    ```
-   pip3 install pyserial
+   sudo apt update
+   sudo apt install python3-serial
    ```
    ```
    python3 flashtool.py -d <serial device> -b <baud_rate>
@@ -142,7 +150,7 @@ options:
   -q, --query           Query Bootloader Device IDs
   -v, --verbose         Enable verbose responses
   -r, --request-bootloader
-                        Requests the bootloader and exits (CAN only)
+                        Requests the bootloader and exits
 ```
 
 ### Can Programming
@@ -157,16 +165,25 @@ The `-f` option defaults to `~/klipper/out/klipper.bin` when omitted.
 
 The `-d` option is required.  The `-b` option defaults to `250000` if omitted.
 
-### Request Bootloader (CAN Devices Only)
+If `flashtool` detects that the device is connected via USB, it will check
+the USB IDs to determine if its currently running Klipper.  If so, the
+`flashtool` will attempt to request the bootloader, waiting until it detects
+Katapult.
 
-When the `-r` option is supplied in addition to `-u` (and optionally `-i`)
-the script will request that the node enter the bootloader.  The script will
-then immediately exit, no attempt will be made to upload a new binary over the
-canbus.  This is particularly useful for Klipper devices running "USB to CAN
+### Request Bootloader and Exit
+
+When the `-r` option is supplied `flashtool` request that the MCU enter
+the bootloader.  Flashtool will then immediately exit, no attempt will be
+made to upload a new binary over the canbus.
+
+This is particularly useful for Klipper devices configured in "USB to CAN
 bridge mode". These devices upload firmware using DFU and/or Katapult-USB. This
 option allows the user to enter the bootloader without physical access to the
 board, then use the appropriate tool (`dfu-util` or `flashtool.py -d`) to
 upload the new binary.
+
+Additionally, the `-r` option can be used with devices connected to the host
+over a UART connection to request Klipper's bootloader.
 
 ## Katapult Deployer
 
