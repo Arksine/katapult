@@ -7,6 +7,10 @@
 from __future__ import annotations
 import sys
 import os
+import termios
+import fcntl
+import zlib
+import json
 import asyncio
 import socket
 import struct
@@ -18,7 +22,7 @@ import pathlib
 import shutil
 import shlex
 import contextlib
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 HAS_SERIAL = True
 try:
     from serial import Serial, SerialException
@@ -62,6 +66,8 @@ BOOTLOADER_CMDS = {
 
 ACK_SUCCESS = 0xa0
 NACK = 0xf1
+ACK_ERROR = 0xf2
+ACK_BUSY = 0xf3
 
 # Klipper Admin Defs (for jumping to bootloader)
 KLIPPER_ADMIN_ID = 0x3f0
@@ -77,8 +83,58 @@ CANBUS_CMD_CLEAR_NODE_ID = 0x12
 CANBUS_RESP_NEED_NODEID = 0x20
 CANBUS_NODEID_OFFSET = 128
 
+# USB IDs
+KATAPULT_USB_ID = "1d50:6177"
+KLIPPER_USB_ID = "1d50:614e"
+SERIAL_BL_REQ = b"~ \x1c Request Serial Bootloader!! ~"
+
 class FlashError(Exception):
     pass
+
+def get_usb_info(usb_path: pathlib.Path) -> Dict[str, Any]:
+    usb_info: Dict[str, Any] = {}
+    id_path = usb_path.joinpath("idVendor")
+    prod_path = usb_path.joinpath("idProduct")
+    mfr_path = usb_path.joinpath("manufacturer")
+    prod_path = usb_path.joinpath("product")
+    if id_path.is_file() and prod_path.is_file():
+        vid = id_path.read_text().strip().lower()
+        pid = prod_path.read_text().strip().lower()
+        usb_info["usb_id"] = f"{vid}:{pid}"
+    usb_info["manufacturer"] = "unknown"
+    usb_info["product"] = "unknown"
+    if mfr_path.is_file():
+        usb_info["manufacturer"] = mfr_path.read_text().strip().lower()
+    if prod_path.is_file():
+        usb_info["product"] = prod_path.read_text().strip().lower()
+    return usb_info
+
+def get_usb_path(device: pathlib.Path) -> Optional[pathlib.Path]:
+    device_path = device.resolve()
+    if not device_path.exists():
+        return None
+    sys_dev_path = pathlib.Path("/sys/class/tty").joinpath(device_path.name)
+    if not sys_dev_path.exists():
+        return None
+    sys_dev_path = sys_dev_path.resolve()
+    for usb_path in sys_dev_path.parents:
+        dnum_file = usb_path.joinpath("devnum")
+        bnum_file = usb_path.joinpath("busnum")
+        if dnum_file.is_file() and bnum_file.is_file():
+            return usb_path
+    return None
+
+def get_stable_usb_symlink(device: pathlib.Path) -> pathlib.Path:
+    device_path = device.resolve()
+    ser_by_path_dir = pathlib.Path("/dev/serial/by-path")
+    try:
+        if ser_by_path_dir.exists():
+            for item in ser_by_path_dir.iterdir():
+                if item.samefile(device_path):
+                    return item
+    except OSError:
+        pass
+    return device_path
 
 class CanFlasher:
     def __init__(
@@ -87,12 +143,60 @@ class CanFlasher:
         fw_file: pathlib.Path
     ) -> None:
         self.node = node
-        self.fw_name = fw_file
+        self.firmware_path = fw_file
         self.fw_sha = hashlib.sha1()
+        self.primed = False
         self.file_size = 0
         self.block_size = 64
         self.block_count = 0
         self.app_start_addr = 0
+        self.klipper_dict: Optional[Dict[str, Any]] = None
+        self._check_binary()
+
+    def _check_binary(self) -> None:
+        """
+        Extract klipper.dict from binary
+        """
+        fw_name = self.firmware_path.name.lower()
+        if fw_name != "klipper.bin":
+            return
+        bin_data = self.firmware_path.read_bytes()
+        klipper_dict: Dict[str, Any] = {}
+        for idx in range(len(bin_data)):
+            try:
+                uncmp_data = zlib.decompress(bin_data[idx:])
+                klipper_dict = json.loads(uncmp_data)
+            except (zlib.error, json.JSONDecodeError):
+                continue
+            if klipper_dict.get("app") == "Klipper":
+                break
+        if klipper_dict:
+            self.klipper_dict = klipper_dict
+            ver = klipper_dict.get("version", "")
+            bin_mcu = self.klipper_dict.get("config", {}).get("MCU", "")
+            output_line(
+                f"Detected Klipper binary version {ver}, MCU: {bin_mcu}"
+            )
+
+    def _build_command(self, cmd: int, payload: bytes) -> bytearray:
+        word_cnt = (len(payload) // 4) & 0xFF
+        out_cmd = bytearray(CMD_HEADER)
+        out_cmd.append(cmd)
+        out_cmd.append(word_cnt)
+        if payload:
+            out_cmd.extend(payload)
+        crc = crc16_ccitt(out_cmd[2:])
+        out_cmd.extend(struct.pack("<H", crc))
+        out_cmd.extend(CMD_TRAILER)
+        return out_cmd
+
+    def prime(self) -> None:
+        # Prime with an invalid command.  This will generate an error
+        # and force double buffered USB devices to respond after the
+        # first command is sent.
+        msg = self._build_command(0x90, b"")
+        self.node.write(msg)
+        self.primed = True
 
     async def connect_btl(self) -> None:
         output_line("Attempting to connect to bootloader")
@@ -122,6 +226,15 @@ class CanFlasher:
             f"Application Start: 0x{self.app_start_addr:4X}\n"
             f"MCU type: {mcu_type}"
         )
+        if self.klipper_dict is not None:
+            bin_mcu = self.klipper_dict.get("config", {}).get("MCU", "")
+            if bin_mcu and bin_mcu != mcu_type:
+                output_line(
+                    "WARNING: MCU returned by Katapult does not match MCU"
+                    "stored in klipper.bin.\n"
+                    f"Katapult MCU: {mcu_type}\n"
+                    f"Klipper Binary MCU: {bin_mcu}"
+                )
 
     async def verify_canbus_uuid(self, uuid):
         output_line("Verifying canbus connection")
@@ -136,16 +249,8 @@ class CanFlasher:
         payload: bytes = b"",
         tries: int = 5
     ) -> bytearray:
-        word_cnt = (len(payload) // 4) & 0xFF
         cmd = BOOTLOADER_CMDS[cmdname]
-        out_cmd = bytearray(CMD_HEADER)
-        out_cmd.append(cmd)
-        out_cmd.append(word_cnt)
-        if payload:
-            out_cmd.extend(payload)
-        crc = crc16_ccitt(out_cmd[2:])
-        out_cmd.extend(struct.pack("<H", crc))
-        out_cmd.extend(CMD_TRAILER)
+        out_cmd = self._build_command(cmd, payload)
         last_err = Exception()
         while tries:
             data = bytearray()
@@ -154,7 +259,7 @@ class CanFlasher:
                 self.node.write(out_cmd)
                 read_done = False
                 while not read_done:
-                    ret = await self.node.readuntil()
+                    ret = await self.node.readuntil(CMD_TRAILER)
                     data.extend(ret)
                     while len(data) > 7:
                         if data[:2] != CMD_HEADER:
@@ -163,6 +268,11 @@ class CanFlasher:
                         recd_len = data[3] * 4
                         read_done = len(data) == recd_len + 8
                         break
+                    if self.primed and read_done:
+                        recd_len = 0
+                        data.clear()
+                        self.primed = False
+                        read_done = False
             except asyncio.CancelledError:
                 raise
             except asyncio.TimeoutError:
@@ -192,6 +302,11 @@ class CanFlasher:
                         f"Command '{cmdname}': Frame CRC Mismatch, expected: "
                         f"{calc_crc}, received {recd_crc}"
                     )
+                elif recd_ack == ACK_ERROR:
+                    logging.info(f"Command '{cmdname}': Received Error Response")
+                elif recd_ack == ACK_BUSY:
+                    logging.info(f"Command '{cmdname}': Received busy signal")
+                    await asyncio.sleep(1.5)
                 elif recd_ack != ACK_SUCCESS:
                     logging.info(f"Command '{cmdname}': Received NACK")
                 elif cmd_response != cmd:
@@ -212,14 +327,14 @@ class CanFlasher:
                 pass
             else:
                 logging.info(f"Read Buffer Contents: {ret!r}")
-            await asyncio.sleep(.1)
+            await asyncio.sleep(.5)
         raise FlashError("Error sending command [%s] to Device" % (cmdname))
 
     async def send_file(self):
         last_percent = 0
-        output_line("Flashing '%s'..." % (self.fw_name))
+        output_line("Flashing '%s'..." % (self.firmware_path))
         output("\n[")
-        with open(self.fw_name, 'rb') as f:
+        with open(self.firmware_path, 'rb') as f:
             f.seek(0, os.SEEK_END)
             self.file_size = f.tell()
             f.seek(0)
@@ -302,17 +417,17 @@ class CanNode:
         self._cansocket = cansocket
 
     async def read(
-        self, n: int = -1, timeout: Optional[float] = 5.
+        self, n: int = -1, timeout: Optional[float] = 2.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.read(n), timeout)
 
     async def readexactly(
-        self, n: int, timeout: Optional[float] = 5.
+        self, n: int, timeout: Optional[float] = 2.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.readexactly(n), timeout)
 
     async def readuntil(
-        self, sep: bytes = b"\x03", timeout: Optional[float] = 5.
+        self, sep: bytes = b"\x03", timeout: Optional[float] = 2.
     ) -> bytes:
         return await asyncio.wait_for(self._reader.readuntil(sep), timeout)
 
@@ -416,8 +531,6 @@ class CanSocket:
         self.output_busy = False
 
     def _jump_to_bootloader(self, uuid: int):
-        # TODO: Send Klipper Admin command to jump to bootloader.
-        # It will need to be implemented
         output_line("Sending bootloader jump command...")
         plist = [(uuid >> ((5 - i) * 8)) & 0xFF for i in range(6)]
         plist.insert(0, KLIPPER_REBOOT_CMD)
@@ -605,22 +718,106 @@ class SerialSocket:
                         )
                         raise FlashError(f"Serial device {dev_path} in use")
 
-    async def run(self, intf: str, baud: int, fw_path: pathlib.Path) -> None:
-        if not fw_path.is_file():
-            raise FlashError("Invalid firmware path '%s'" % (fw_path))
-        await self.validate_device(intf)
+    async def _request_usb_bootloader(self, device: pathlib.Path) -> pathlib.Path:
+        output_line(f"Requesting USB bootloader for {device}...")
+        usb_dev_path = get_usb_path(device)
+        if usb_dev_path is None:
+            output_line(f"Device path {device} is not a usb device")
+            return device
+        stable_path = get_stable_usb_symlink(device)
+        fd: Optional[int] = None
+        with contextlib.suppress(OSError):
+            fd = os.open(str(device), os.O_RDWR)
+            fcntl.ioctl(
+                fd, termios.TIOCMBIS, struct.pack('I', termios.TIOCM_DTR)
+            )
+            t = termios.tcgetattr(fd)
+            t[4] = t[5] = termios.B1200
+            termios.tcsetattr(fd, termios.TCSANOW, t)
+            fcntl.ioctl(
+                fd, termios.TIOCMBIC, struct.pack('I', termios.TIOCM_DTR)
+            )
+        if fd is not None:
+            os.close(fd)
+        output("Waiting for USB Reconnect.")
+        for _ in range(8):
+            await asyncio.sleep(.5)
+            output(".")
+            usb_info = get_usb_info(usb_dev_path)
+            mfr = usb_info.get("manufacturer")
+            if mfr == "katapult":
+                output_line("Katapult detected")
+                await asyncio.sleep(1.0)
+                break
+        else:
+            output_line("timed out")
+        return stable_path
+
+    async def _request_serial_bootloader(self, device: str, baud: int) -> None:
+        output_line(f"Requesting serial bootloader for device {device}...")
+        self._open_device(device, baud)
+        self.send(0, SERIAL_BL_REQ)
+        await asyncio.sleep(1.)
+        if self.serial is not None:
+            self.serial.close()
+
+    def _open_device(self, device: str, baud: int) -> Serial:
         try:
             serial_dev = Serial(                            # type: ignore
                 baudrate=baud, timeout=0, exclusive=True
             )
-            serial_dev.port = intf
+            serial_dev.port = device
             serial_dev.open()
         except (OSError, IOError, SerialException) as e:
             raise FlashError("Unable to open serial port: %s" % (e,))
-        self.serial = serial_dev
+        return serial_dev
+
+    def _has_double_buffering(self, product: str) -> bool:
+        if product.startswith("stm32"):
+            variant = product[5:7]
+            return variant not in ("f2", "f4", "h7")
+        return False
+
+    async def run(
+        self, intf: str, baud: int, fw_path: pathlib.Path, req_only: bool
+    ) -> None:
+        if not fw_path.is_file():
+            raise FlashError("Invalid firmware path '%s'" % (fw_path))
+        await self.validate_device(intf)
+        intf_path = pathlib.Path(intf)
+        usb_dev_path = get_usb_path(intf_path)
+        dev_info: Dict[str, Any] = {}
+        if usb_dev_path is not None:
+            dev_info = get_usb_info(usb_dev_path)
+        usb_id = dev_info.get("usb_id")
+        usb_mfr = dev_info.get("manufacturer")
+        usb_prod: str = dev_info.get("product", "unknown")
+        if usb_mfr == "klipper" or usb_id == KLIPPER_USB_ID:
+            # Request usb bootloader, wait for katapult
+            output_line("Detected USB device running Klipper")
+            new_intf = await self._request_usb_bootloader(intf_path)
+            intf = str(new_intf)
+            if req_only:
+                return
+        elif usb_mfr == "katapult" or usb_id == KATAPULT_USB_ID:
+            output_line("Detected USB device running Katapult")
+            if req_only:
+                return
+        elif req_only:
+            # Request serial bootloader and exit
+            await self._request_serial_bootloader(intf, baud)
+            return
+        else:
+            usb_prod = ""
+        self.serial = self._open_device(intf, baud)
         self._loop.add_reader(self.serial.fileno(), self._handle_response)
         flasher = CanFlasher(self.node, fw_path)
         try:
+            if self._has_double_buffering(usb_prod):
+                # Prime the USB Connection with a dummy command.  This is
+                # necessary to get STM32 devices with usbfs double buffering
+                # to respond immediately to the connect command.
+                flasher.prime()
             await flasher.connect_btl()
             await flasher.send_file()
             await flasher.verify_file()
@@ -675,10 +872,10 @@ async def main(args: argparse.Namespace) -> int:
                 )
             output_line(f"Flashing Serial Device {args.device}, baud {args.baud}")
             sock = SerialSocket(loop)
-            await sock.run(args.device, args.baud, fpath)
+            await sock.run(args.device, args.baud, fpath, req_only)
     except Exception:
         logging.exception("Flash Error")
-        return -1
+        return 1
     finally:
         if sock is not None:
             sock.close()
@@ -722,7 +919,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "-r", "--request-bootloader", action="store_true",
-        help="Requests the bootloader and exits (CAN only)"
+        help="Requests the bootloader and exits"
     )
 
     args = parser.parse_args()
