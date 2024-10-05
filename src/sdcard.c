@@ -9,12 +9,21 @@
 #include "canboot.h" // application_read_flash
 #include "board/misc.h"  // timer_read_time
 #include "board/flash.h" // flash_write_block
+#include "byteorder.h"  // cpu_to_le32
 #include "sdcard.h"     // sdcard_init
 #include "ff.h"         // f_open
 #include "diskio.h"     // disk_initialize
 #include "command.h"    // command_set_enable
 #include "flashcmd.h"   // set_in_transfer
-#include "sched.h" // DECL_TASK
+#include "sched.h"      // DECL_TASK
+
+#if CONFIG_SDCARD_SDIO
+#define SDCARD_INTERFACE 2
+#elif CONFIG_SDCARD_SOFTWARE_SPI
+#define SDCARD_INTERFACE 1
+#else
+#define SDCARD_INTERFACE 0
+#endif
 
 static struct {
     FATFS fs;
@@ -31,7 +40,9 @@ enum {
     SDS_NEED_UPLOAD,
     SDS_NEED_VERIFY,
     SDS_DONE,
-    SDS_ERROR
+    SDS_ERROR,
+    SDS_NO_FILE,
+    SDS_NO_DISK
 };
 
 /**********************************************************
@@ -113,13 +124,17 @@ sdcard_open(void)
     ff_data.disk_status = STA_NOINIT;
     FRESULT res;
     res = f_mount(&(ff_data.fs), "", 1);
-    if (res != FR_OK)
+    if (res != FR_OK) {
+        ff_data.flash_state = SDS_NO_DISK;
         goto fail;
+    }
     // open file in read mode
     const char* firmware_name = CONFIG_SD_FIRMWARE_NAME;
     res = f_open(&(ff_data.file_obj), firmware_name, 1);
-    if (res != FR_OK)
+    if (res != FR_OK) {
+        ff_data.flash_state = SDS_NO_FILE;
         goto fail;
+    }
     ff_data.file_open = 1;
     ff_data.flash_state = SDS_BEGIN_XFER;
     ff_data.block_address = CONFIG_LAUNCH_APP_ADDRESS;
@@ -239,3 +254,16 @@ sdcard_upload_task(void)
     }
 }
 DECL_TASK(sdcard_upload_task);
+
+void
+command_get_sdcard_status(uint32_t* data)
+{
+    uint16_t sd_stat = sdcard_report_status();
+    uint32_t out[4];
+    out[2] = cpu_to_le32(
+        ((sd_stat & 0xFFFF) << 16) |
+        ((ff_data.flash_state & 0xFF) << 8) |
+        (SDCARD_INTERFACE & 0xFF)
+    );
+    command_respond_ack(CMD_GET_SD_STATUS, out, ARRAY_SIZE(out));
+}

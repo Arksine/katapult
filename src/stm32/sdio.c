@@ -433,3 +433,9 @@ sdcard_deinit(void)
     sdio_power_off();
     sdio_config.rca = 0;
 }
+
+uint16_t
+sdcard_report_status(void)
+{
+    return (sdio_config.error << 8) | (sdio_config.flags);
+}
