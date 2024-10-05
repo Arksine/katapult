@@ -24,6 +24,7 @@
 uint8_t sdcard_write_sector(uint8_t* buf, uint32_t sector);
 uint8_t sdcard_read_sector(uint8_t *buf, uint32_t sector);
 uint8_t sdcard_init(void);
+uint16_t sdcard_report_status(void);
 void sdcard_deinit(void);
 
 #endif

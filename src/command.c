@@ -108,8 +108,14 @@ command_dispatch(uint8_t *buf, uint_fast8_t msglen)
                 break;
             }
             // NO BREAK
+        case CMD_GET_SD_STATUS:
+            if (CONFIG_ENABLE_SDCARD) {
+                command_get_sdcard_status(data);
+                break;
+            }
+            // NO BREAK
         default:
-            // Unknown command or gabage data, NACK it
+            // Unknown command or garbage data, NACK it
             command_respond_command_error();
     }
 }

@@ -30,6 +30,7 @@
 #define CMD_REQ_BLOCK     0x14
 #define CMD_COMPLETE      0x15
 #define CMD_GET_CANBUS_ID 0x16
+#define CMD_GET_SD_STATUS 0x17
 #define RESPONSE_ACK           0xa0
 #define RESPONSE_NACK          0xf1
 #define RESPONSE_COMMAND_ERROR 0xf2
@@ -59,6 +60,7 @@ void command_write_block(uint32_t *data);
 void command_eof(uint32_t *data);
 void command_complete(uint32_t *data);
 void command_get_canbus_id(uint32_t *data);
+void command_get_sdcard_status(uint32_t *data);
 
 // command.c
 void command_respond_ack(uint32_t acked_cmd, uint32_t *out, uint32_t out_len);
