@@ -46,22 +46,9 @@ static struct {
     uint32_t rca;
     uint8_t flags, error;
 } sdio_config;
+
 enum {SDF_INITIALIZED = 1, SDF_XFER_MODE = 2, SDF_HIGH_CAPACITY = 4,
       SDF_WRITE_PROTECTED = 8, SDF_CD_OFF = 16, SDF_DEINIT =  32};
-enum {
-    SDIO_ERROR_NO_IDLE = 1,
-    SDIO_ERROR_SEND_IF_COND,
-    SDIO_ERROR_SEND_OP_COND,
-    SDIO_ERROR_BAD_OCR,
-    SDIO_ERROR_READ_BLOCK,
-    SDIO_ERROR_WRITE_BLOCK,
-    SDIO_ERROR_ALL_SEND_CID,
-    SDIO_ERROR_SEND_REL_ADDR,
-    SDIO_ERROR_SEND_CSD,
-    SDIO_ERROR_SEL_DESEL_CARD,
-    SDIO_ERROR_SET_CARD_DETECT,
-    SDIO_ERROR_SET_BLOCKLEN
-};
 
 static uint8_t
 get_response_type(uint8_t command)
@@ -197,7 +184,7 @@ sdio_write_block(uint32_t* write_buf, uint32_t address)
     SDIO->DLEN = SD_SECTOR_SIZE;
     int ret = sdio_send_command(SDCMD_WRITE_BLOCK, address);
     if (ret != SDIO_RESPONSE_SUCCESS) {
-        sdio_config.error = SDIO_ERROR_WRITE_BLOCK;
+        sdio_config.error = SD_ERROR_WRITE_BLOCK;
         return ret;
     }
     SDIO->DCTRL = (9 << 4) | SDIO_DCTRL_DTEN;
@@ -213,12 +200,12 @@ sdio_write_block(uint32_t* write_buf, uint32_t address)
         }
     } while (!(status & SDIO_TX_DONE_MASK));
     if (write_count < SD_SECTOR_SIZE) {
-        sdio_config.error = SDIO_ERROR_WRITE_BLOCK;
+        sdio_config.error = SD_ERROR_WRITE_BLOCK;
         ret = -4;
     } else if (!wait_programming_done()) {
         // Wait for card to finish transmitting/programming
         ret = -5;
-        sdio_config.error = SDIO_ERROR_WRITE_BLOCK;
+        sdio_config.error = SD_ERROR_WRITE_BLOCK;
     }
     return ret;
 }
@@ -232,7 +219,7 @@ sdio_read_block(uint32_t* read_buf, uint32_t address)
     SDIO->DLEN = SD_SECTOR_SIZE;
     int ret = sdio_send_command(SDCMD_READ_SINGLE_BLOCK, address);
     if (ret != SDIO_RESPONSE_SUCCESS) {
-        sdio_config.error = SDIO_ERROR_READ_BLOCK;
+        sdio_config.error = SD_ERROR_READ_BLOCK;
         return ret;
     }
     SDIO->DCTRL = (9 << 4) | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTEN;
@@ -247,7 +234,7 @@ sdio_read_block(uint32_t* read_buf, uint32_t address)
         }
     } while (!(status & SDIO_RX_DONE_MASK));
     if (read_count < SD_SECTOR_SIZE) {
-        sdio_config.error = SDIO_ERROR_READ_BLOCK;
+        sdio_config.error = SD_ERROR_READ_BLOCK;
         ret = -4;
     }
     return ret;
@@ -351,7 +338,7 @@ sdcard_init(void)
     // Check interface condition to determine card version
     sd_ver = check_interface_condition();
     if (!sd_ver) {
-        sdio_config.error = SDIO_ERROR_SEND_IF_COND;
+        sdio_config.error = SD_ERROR_SEND_IF_COND;
         return 0;
     }
 
@@ -360,7 +347,7 @@ sdcard_init(void)
     uint32_t ocr_expect = (1 << 31) | (1 << 20);
     if (!check_command(SDCMD_SEND_OP_COND, arg, 1, ocr_expect, ocr_expect, 20))
     {
-        sdio_config.error = SDIO_ERROR_SEND_OP_COND;
+        sdio_config.error = SD_ERROR_SEND_OP_COND;
         return 0;
     }
     if (SDIO->RESP1 & (1 << 30))
@@ -368,32 +355,32 @@ sdcard_init(void)
 
     // request CID
     if (sdio_send_command(SDCMD_ALL_SEND_CID, 0) < 0) {
-        sdio_config.error = SDIO_ERROR_ALL_SEND_CID;
+        sdio_config.error = SD_ERROR_ALL_SEND_CID;
         return 0;
     }
     // Set Relative Address, don't allow the card to select "0"
     while (!sdio_config.rca) {
         if (sdio_send_command(SDCMD_SEND_REL_ADDR, 0) < 0) {
-            sdio_config.error = SDIO_ERROR_SEND_REL_ADDR;
+            sdio_config.error = SD_ERROR_SEND_REL_ADDR;
             return 0;
         }
         sdio_config.rca = SDIO->RESP1 & 0xFFFF0000;
     }
     // Request CSD
     if (sdio_send_command(SDCMD_SEND_CSD, sdio_config.rca) < 0) {
-        sdio_config.error = SDIO_ERROR_SEND_CSD;
+        sdio_config.error = SD_ERROR_SEND_CSD;
         return 0;
     }
     if (SDIO->RESP4 & (3 << 12)) {
         // card is write protected, can't rename the
         // firmware file after upload.
         sdio_config.flags |= SDF_WRITE_PROTECTED;
-        sdio_config.error = SDIO_ERROR_WRITE_BLOCK;
+        sdio_config.error = SD_ERROR_WRITE_BLOCK;
         return 0;
     }
     // put card in transfer mode
     if (sdio_send_command(SDCMD_SEL_DESEL_CARD, sdio_config.rca) < 0) {
-        sdio_config.error = SDIO_ERROR_SEL_DESEL_CARD;
+        sdio_config.error = SD_ERROR_SEL_DESEL_CARD;
         return 0;
     }
     // card is out of identification mode, increase clock
@@ -402,13 +389,13 @@ sdcard_init(void)
     if (check_command(SDCMD_SET_CLR_CD_DETECT, 0, 1, 0, 0, 3))
         sdio_config.flags |= SDF_CD_OFF;
     else {
-        sdio_config.error = SDIO_ERROR_SET_CARD_DETECT;
+        sdio_config.error = SD_ERROR_SET_CARD_DETECT;
         return 0;
     }
     // Set block length to 512
     uint32_t bl_mask = 1 << 29;
     if (!check_command(SDCMD_SET_BLOCKLEN, SD_SECTOR_SIZE, 0, 0, bl_mask, 5)) {
-        sdio_config.error = SDIO_ERROR_SET_BLOCKLEN;
+        sdio_config.error = SD_ERROR_SET_BLOCKLEN;
         return 0;
     }
     sdio_config.flags |= SDF_INITIALIZED;
