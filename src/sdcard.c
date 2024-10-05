@@ -26,7 +26,13 @@ static struct {
     uint32_t start_time;
 } ff_data;
 
-enum {SDS_BEGIN_XFER = 1, SDS_NEED_UPLOAD, SDS_NEED_VERIFY, SDS_DONE};
+enum {
+    SDS_BEGIN_XFER = 1,
+    SDS_NEED_UPLOAD,
+    SDS_NEED_VERIFY,
+    SDS_DONE,
+    SDS_ERROR
+};
 
 /**********************************************************
  * FatFS Callbacks
@@ -148,10 +154,9 @@ rename_firmware(const char* new_ext)
 static void
 sdcard_flash_error(void)
 {
-    ff_data.flash_state = 0;
+    ff_data.flash_state = SDS_ERROR;
     rename_firmware("err");
     sdcard_close();
-    set_complete();
 }
 
 static void
