@@ -21,6 +21,20 @@
 #define SDCMD_CRC_ON_OFF        59
 #define SD_SECTOR_SIZE          512
 
+#define SD_ERROR_NO_IDLE            1
+#define SD_ERROR_SEND_IF_COND       2
+#define SD_ERROR_SEND_OP_COND       3
+#define SD_ERROR_BAD_OCR            4
+#define SD_ERROR_READ_BLOCK         5
+#define SD_ERROR_WRITE_BLOCK        6
+#define SD_ERROR_ALL_SEND_CID       7
+#define SD_ERROR_SEND_REL_ADDR      8
+#define SD_ERROR_SEND_CSD           9
+#define SD_ERROR_SEL_DESEL_CARD     10
+#define SD_ERROR_SET_CARD_DETECT    11
+#define SD_ERROR_SET_BLOCKLEN       12
+#define SD_ERROR_CRC_ON_OFF         13
+
 uint8_t sdcard_write_sector(uint8_t* buf, uint32_t sector);
 uint8_t sdcard_read_sector(uint8_t *buf, uint32_t sector);
 uint8_t sdcard_init(void);
