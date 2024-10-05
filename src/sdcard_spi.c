@@ -33,9 +33,8 @@ static struct {
     uint8_t err;
 } sd_spi;
 
-enum {SDF_INITIALIZED = 1, SDF_HIGH_CAPACITY = 2, SDF_WRITE_PROTECTED = 4,
-      SDF_DEINIT =  8};
-
+enum {SDF_INITIALIZED = 1, SDF_XFER_MODE = 2, SDF_HIGH_CAPACITY = 4,
+      SDF_WRITE_PROTECTED = 8, SDF_CD_OFF = 16, SDF_DEINIT =  32};
 // COMMAND FLAGS
 enum {CF_APP_CMD = 1, CF_NOT_EXPECT = 4};
 
@@ -395,6 +394,11 @@ sdcard_init(void)
         if (buf[1] & 0x40)
             sd_spi.flags |= SDF_HIGH_CAPACITY;
     }
+    sd_spi.flags |= SDF_XFER_MODE;
+
+    if (check_command(SDCMD_SET_CLR_CD_DETECT, 0, buf, CF_APP_CMD, 0, 3)) {
+        sd_spi.flags |= SDF_CD_OFF;
+    }
 
     if (!check_command(SDCMD_SET_BLOCKLEN, SD_SECTOR_SIZE, buf, 0, 0, 3)) {
         sd_spi.err = SD_ERROR_SET_BLOCKLEN;
@@ -416,6 +420,11 @@ sdcard_deinit(void)
         return;
     sd_spi.flags |= SDF_DEINIT;
     uint8_t buf[8];
+    if (sd_spi.flags & SDF_CD_OFF) {
+        if (check_command(SDCMD_SET_CLR_CD_DETECT, 1, buf, CF_APP_CMD, 0, 3)) {
+            sd_spi.flags &= ~SDF_CD_OFF;
+        }
+    }
     // return to idle and disable crc checks
     check_command(SDCMD_GO_IDLE_STATE, 0, buf, 0, 1, 50);
     send_command(SDCMD_CRC_ON_OFF, 0, buf);
