@@ -423,3 +423,9 @@ sdcard_deinit(void)
     check_command(SDCMD_GO_IDLE_STATE, 0, buf, 0, 1, 50);
     send_command(SDCMD_CRC_ON_OFF, 0, buf);
 }
+
+uint16_t
+sdcard_report_status(void)
+{
+    return (sd_spi.err << 8) | (sd_spi.flags);
+}
