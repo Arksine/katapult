@@ -35,9 +35,7 @@ static struct {
 
 enum {SDF_INITIALIZED = 1, SDF_HIGH_CAPACITY = 2, SDF_WRITE_PROTECTED = 4,
       SDF_DEINIT =  8};
-enum {SDE_NO_IDLE = 1, SDE_IF_COND_ERR = 2, SDE_CRC_ERR = 4,
-      SDE_OP_COND_ERR = 8, SDE_OCR_ERR = 16, SDE_READ_ERR = 32,
-      SDE_WRITE_ERR = 64, SDE_OTHER_ERR = 128};
+
 // COMMAND FLAGS
 enum {CF_APP_CMD = 1, CF_NOT_EXPECT = 4};
 
@@ -228,7 +226,7 @@ sdcard_write_sector(uint8_t *buf, uint32_t sector)
     ret = xfer_cmd(SDCMD_WRITE_BLOCK, offset, cmd_buf, 0);
     if (ret == 0xFF) {
         gpio_out_write(sd_spi.cs_pin, 1);
-        sd_spi.err |= SDE_WRITE_ERR;
+        sd_spi.err = SD_ERROR_WRITE_BLOCK;
         return 0;
     }
     // Send Header
@@ -251,7 +249,7 @@ sdcard_write_sector(uint8_t *buf, uint32_t sector)
         ret += 1;
     gpio_out_write(sd_spi.cs_pin, 1);
     if (ret > 0) {
-        sd_spi.err |= SDE_WRITE_ERR;
+        sd_spi.err = SD_ERROR_WRITE_BLOCK;
         return 0;
     }
     return 1;
@@ -287,11 +285,10 @@ read_data_block(uint8_t cmd, uint32_t arg, uint8_t* buf, uint32_t length)
     uint16_t recd_crc = (cmd_buf[0] << 8) | cmd_buf[1];
     uint16_t crc = calc_crc16(buf, length);
     if (recd_crc != crc) {
-        sd_spi.err |= SDE_CRC_ERR;
         ret = 3;
     }
     if (ret > 0) {
-        sd_spi.err |= SDE_READ_ERR;
+        sd_spi.err = SD_ERROR_READ_BLOCK;
         return 0;
     }
     return 1;
@@ -341,7 +338,7 @@ sdcard_init(void)
     }
     // attempt to go idle
     if (!check_command(SDCMD_GO_IDLE_STATE, 0, buf, 0, 1, 50)) {
-        sd_spi.err |= SDE_NO_IDLE;
+        sd_spi.err = SD_ERROR_NO_IDLE;
         return 0;
     }
     // Check SD Card Version
@@ -349,7 +346,7 @@ sdcard_init(void)
     if (!check_command(SDCMD_SEND_IF_COND, 0x10A, buf,
                        CF_NOT_EXPECT, 0xFF, 3))
     {
-        sd_spi.err |= SDE_IF_COND_ERR;
+        sd_spi.err = SD_ERROR_SEND_IF_COND;
         return 0;
     }
     if (buf[0] & 4)
@@ -357,25 +354,25 @@ sdcard_init(void)
     else if (buf[0] == 1 && buf[3] == 1 && buf[4] == 10)
         sd_ver = 2;
     else {
-        sd_spi.err |= SDE_IF_COND_ERR;
+        sd_spi.err = SD_ERROR_SEND_IF_COND;
         return 0;
     }
     // Enable CRC Checks
     if (!check_command(SDCMD_CRC_ON_OFF, 1, buf, 0, 1, 3)) {
-        sd_spi.err |= SDE_CRC_ERR;
+        sd_spi.err = SD_ERROR_CRC_ON_OFF;
         return 0;
     }
 
     // Read OCR Register to determine if voltage is acceptable
     if (!check_command(SDCMD_READ_OCR, 0, buf, 0, 1, 20)) {
-        sd_spi.err |= SDE_OCR_ERR;
+        sd_spi.err = SD_ERROR_BAD_OCR;
         return 0;
     }
 
     if ((buf[2] & 0x30) != 0x30) {
         // Voltage between 3.2-3.4v not supported by this
         // card
-        sd_spi.err |= SDE_OCR_ERR;
+        sd_spi.err = SD_ERROR_BAD_OCR;
         return 0;
 
     }
@@ -385,14 +382,14 @@ sdcard_init(void)
     if (!check_command(SDCMD_SEND_OP_COND, (sd_ver == 1) ? 0 : (1 << 30),
                        buf, CF_APP_CMD, 0, 20))
     {
-        sd_spi.err |= SDE_OP_COND_ERR;
+        sd_spi.err = SD_ERROR_SEND_OP_COND;
         return 0;
     }
 
     if (sd_ver == 2) {
         // read OCR again to determine capacity
         if (!check_command(SDCMD_READ_OCR, 0, buf, 0, 0, 5)) {
-            sd_spi.err |= SDE_OCR_ERR;
+            sd_spi.err = SD_ERROR_BAD_OCR;
             return 0;
         }
         if (buf[1] & 0x40)
@@ -400,7 +397,7 @@ sdcard_init(void)
     }
 
     if (!check_command(SDCMD_SET_BLOCKLEN, SD_SECTOR_SIZE, buf, 0, 0, 3)) {
-        sd_spi.err |= SDE_OTHER_ERR;
+        sd_spi.err = SD_ERROR_SET_BLOCKLEN;
         return 0;
     }
     if (!sdcard_check_write_protect()) {
