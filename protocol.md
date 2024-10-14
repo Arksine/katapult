@@ -158,6 +158,61 @@ payload in the following format:
 <4 byte orig_command><6 byte UUID><0x00><0x00>
 ```
 
+#### Get SD Card Status: `0x17`
+
+Returns SD Card information.  Only available when SD Card programming is enabled.
+
+```
+<0x01><0x88><0x17><0x00><CRC><0x99><0x03>
+```
+
+Responds with [acknowledged](#acknowledged-0xa0) containing a 8 byte
+payload in the following format:
+
+```
+<4 byte orig_command><1 byte SD Card Interface><1 byte SD Card State><1 byte SD Card Flags><1 byte SD Card Error>
+```
+
+- `SD Card Interface`: An enumeration detailing the configured SD Card interface.
+  Can be one of the following values:
+  - `HARDWARE_SPI = 0`
+  - `SOFTWARE_SPI = 1`
+  - `SDIO = 2`
+- `SD Card State`: An enumeration detailing the last SD Card Programming state.
+  Can be one of the following values:
+  - `DISABLED = 0`
+  - `PENDING TRANSFER = 1`
+  - `UPLOADING = 2`
+  - `VERIFYING = 3`
+  - `FINISHED = 4`
+  - `ERROR = 5`
+  - `NO FILE FOUND = 6`
+  - `NO DISK FOUND = 7`
+- `SD Card Flags`:  A flag containing specific state detected during the
+  SD Card operation.  Can be a bitwise OR of any of the following:
+  - `INITIALIZED = 1`
+  - `TRANSFER MODE = 2`
+  - `HIGH CAPACITY = 4`
+  - `WRITE PROTECTION ENABLED = 8`
+  - `CARD DETECT PULLUP DISABLED = 16`
+  - `DEINITIALIZED = 32`
+- `SD Card Error`:  An enumeration containing the last error detected. Can be one
+  of the following values:
+  - `NO ERROR = 0`
+  - `RESET ERROR (NO IDLE STATE) = 1`
+  - `SEND IF COND ERROR = 2`
+  - `SEND OP COND ERROR = 3`
+  - `READ OCR ERROR = 4`
+  - `READ BLOCK ERROR = 5`
+  - `WRITE BLOCK ERROR = 6`
+  - `SEND CID ERROR = 7`
+  - `SEND REL ADDR ERROR = 8`
+  - `SEND CSD ERROR = 9`
+  - `SEL DESEL ERROR = 10`
+  - `SET CARD DETECT ERROR = 11`
+  - `SET BLOCKLEN ERROR = 12`
+  - `CRC ON/OFF ERROR = 13`
+
 ### Responses
 
 #### Acknowledged: `0xa0`

@@ -149,10 +149,11 @@ options:
                         Path to Klipper firmware file
   -u <uuid>, --uuid <uuid>
                         Can device uuid
-  -q, --query           Query Bootloader Device IDs
+  -q, --query           Query Bootloader Device IDs (CANBus only)
   -v, --verbose         Enable verbose responses
   -r, --request-bootloader
                         Requests the bootloader and exits
+  -s, --status          Connect to bootloader and print status
 ```
 
 ### Can Programming
@@ -205,7 +206,8 @@ and if detected it will begin writing.  If a `status led` is configured it
 will blink rapidly during the programming procedure.  After successful completion
 Katapult will rename the firmware file's extension to `.cur`, reset the MCU,
 and jump to the application.  If Katapult encounters an error during programming
-it will exit and attempt to rename the firmware file with a `.err` extension.
+it will attempt to rename the firmware file with a `.err` extension, then drop
+to command mode.
 
 If the `firmware file` does not exist or if there is an error initializing the
 SD Card, Katapult will enter command mode.  In this mode the `status led`
@@ -239,6 +241,35 @@ when SD Card support is configured, thus a 16 KB `Application start offset` shou
 is `CANBus` and `Long File Name Support` is enabled.  This will result in a binary
 larger than 16 KiB.  It should be noted that `Klipper` currently only supports a
 16 KiB bootloader offset for the `RP2040`.
+
+### Troubleshooting
+
+As mentioned above, Katapult will enter command mode if it encounters an error
+during initialization or programming.  When in command mode it is possible
+to use the flashtool's  `-s` option to query Katapult's status which includes
+SD Card status:
+
+```
+./scripts/flashtool.py -s -u aabbccddeeff
+Connecting to CAN UUID aabbccddeeff on interface can0
+Resetting all bootloader node IDs...
+Detected Klipper binary version v0.12.0-302-g87ac69363, MCU: stm32f103xe
+Attempting to connect to bootloader
+Katapult Connected
+Software Version: v0.0.1-95-g2d7bd0c
+Protocol Version: 1.1.0
+Block Size: 64 bytes
+Application Start: 0x8004000
+MCU type: stm32f103xe
+Verifying canbus connection
+
+*** SD Card Status ***
+Detected SD Card Interface: HARDWARE_SPI
+Last SD Flash State: NO_DISK
+SD Flags: DEINITIALIZED
+Last Error: NO_IDLE_STATE
+Status Request Complete
+```
 
 
 ## Katapult Deployer
