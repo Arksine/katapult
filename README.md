@@ -147,10 +147,11 @@ options:
                         Path to Klipper firmware file
   -u <uuid>, --uuid <uuid>
                         Can device uuid
-  -q, --query           Query Bootloader Device IDs
+  -q, --query           Query Bootloader Device IDs (CANBus only)
   -v, --verbose         Enable verbose responses
   -r, --request-bootloader
                         Requests the bootloader and exits
+  -s, --status          Connect to bootloader and print status
 ```
 
 ### Can Programming
