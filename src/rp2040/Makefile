@@ -22,6 +22,7 @@ src-$(CONFIG_SERIAL) += rp2040/serial.c generic/serial_irq.c
 src-$(CONFIG_CANSERIAL) += rp2040/can.c rp2040/chipid.c ../lib/can2040/can2040.c
 src-$(CONFIG_CANSERIAL) += generic/canserial.c generic/canbus.c
 src-$(CONFIG_CANSERIAL) += ../lib/fast-hash/fasthash.c
+src-$(CONFIG_SDCARD_SPI) += rp2040/spi.c
 
 $(OUT)katapult.elf: $(OUT)stage2.o $(OUT)src/rp2040/rp2040_link.ld
 # rp2040 stage2 building
