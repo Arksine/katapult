@@ -298,11 +298,14 @@ choice
         bool "20 MHz crystal"
     config STM32_CLOCK_REF_25M
         bool "25 MHz crystal"
+    config STM32_CLOCK_REF_32M
+        bool "32 MHz crystal"
     config STM32_CLOCK_REF_INTERNAL
         bool "Internal clock"
 endchoice
 config CLOCK_REF_FREQ
     int
+    default 32000000 if STM32_CLOCK_REF_32M
     default 25000000 if STM32_CLOCK_REF_25M
     default 20000000 if STM32_CLOCK_REF_20M
     default 16000000 if STM32_CLOCK_REF_16M
