@@ -52,7 +52,7 @@ The menuconfig will present the following options:
   twice within a 500ms window.
 - `Enable bootloader entry on button (or gpio) state`:  Enable to use a gpio
   to enter the booloader.
-  - `Button GPIO Pin`:  The Pin Name of te
+  - `Button GPIO Pin`:  The Pin Name of the Pin. E.G. PB10
 - `Enable Status Led`: Enables the option to select a status LED gpio.
   - `Status LED GPIO Pin`:  The pin name for your LED.  The Pin can be inverted
     if the LED is on when the pin is low.  For example, the status LED Pin for a
