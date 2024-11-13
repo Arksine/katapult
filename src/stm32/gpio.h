@@ -43,7 +43,8 @@ struct spi_config {
 struct spi_config spi_setup(uint32_t bus, uint8_t mode, uint32_t rate);
 void spi_prepare(struct spi_config config);
 void spi_transfer(struct spi_config config, uint8_t receive_data
-                  , uint8_t len, uint8_t *data);
+                  , uint16_t len, uint8_t *data);
+void spi_set_rate(struct spi_config *config, uint32_t rate);
 
 struct i2c_config {
     void *i2c;

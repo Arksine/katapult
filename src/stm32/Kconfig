@@ -225,6 +225,97 @@ config STM32_DFU_ROM_ADDRESS
     default 0x1ff09800 if MACH_STM32H7
     default 0
 
+######################################################################
+# SD Card Configuration
+######################################################################
+
+menu "SD Card Configuration"
+
+choice
+    depends on HAVE_GPIO_SPI
+    default STM32_SD_DISABLED
+    prompt "SD Card Interface"
+    config STM32_SD_DISABLED
+        bool "SD Card Disabled"
+    config STM32_SD_SPI1
+        bool "SPI1 (on PA6/PA7/PA5)"
+        select SDCARD_SPI
+    config STM32_SD_SPI1A
+        bool "SPI1A (on PB4/PB5/PB3)"
+        select SDCARD_SPI
+    config STM32_SD_SPI2
+        bool "SPI2 (on PB14/PB15/PB13)"
+        select SDCARD_SPI
+    config STM32_SD_SPI2A
+        bool "SPI2A (on PC2/PC3/PB10)" if !MACH_STM32F1 && !MACH_STM32G4
+        select SDCARD_SPI
+    config STM32_SD_SPI2_PA10_PA11_PF1
+        bool "SPI2A (on PA10/PA11/PF1)" if MACH_STM32G4
+        select SDCARD_SPI
+    config STM32_SD_SPI2B
+        bool "SPI2B (on PI2/PI3/PI1)" if MACH_STM32F2 || MACH_STM32F4x5 || MACH_STM32F429 || (MACH_STM32H7 && !MACH_STM32H723)
+        select SDCARD_SPI
+    config STM32_SD_SPI2_PB2_PB11_PB10
+        bool "SPI2 (on PB2/PB11/PB10)" if MACH_STM32G0B1
+        select SDCARD_SPI
+    config STM32_SD_SPI3
+        bool "SPI3 (on PB4/PB5/PB3)" if !MACH_STM32F0 && !MACH_STM32H7
+        select SDCARD_SPI
+    config STM32_SD_SPI3A
+        bool "SPI3A (on PC11/PC12/PC10)" if MACH_STM32F4 || MACH_STM32G4 || MACH_STM32H7
+        select SDCARD_SPI
+    config STM32_SD_SPI4
+        bool "SPI4 (on PE13,PE14,PE12)" if MACH_STM32F401 || MACH_STM32F446
+        select SDCARD_SPI
+    config STM32_SD_SPI5
+        bool "SPI5 (on PF8,PF9,PF7)" if MACH_STM32H7
+        select SDCARD_SPI
+    config STM32_SD_SPI5A
+        bool "SPI5A (on PH7,PF11,PH6)" if MACH_STM32H7
+        select SDCARD_SPI
+    config STM32_SD_SPI6
+        bool "SPI6 (on PG12,PG14,PG13)" if MACH_STM32H7
+        select SDCARD_SPI
+    config STM32_SOFTWARE_SPI
+        bool "Software SPI"
+        select SDCARD_SOFTWARE_SPI
+    config STM32_SDIO
+        bool "SDIO (on PD2,PC8,PC9,PC10,PC11,PC12)" if MACH_STM32F4
+        select SDCARD_SDIO
+endchoice
+
+config SOFTWARE_SPI_PINS
+    depends on SDCARD_SOFTWARE_SPI
+    string "SD Card Software SPI Pins (MISO,MOSI,SCLK)"
+config SD_SPI_CS_PIN
+    depends on SDCARD_SPI || SDCARD_SOFTWARE_SPI
+    string "SD Card SPI CS Pin"
+config SD_FIRMWARE_NAME
+    depends on !STM32_SD_DISABLED
+    string "Firmware file name"
+    default "firmware.bin"
+config FATFS_ENABLE_LFN
+    depends on !STM32_SD_DISABLED
+    bool "Enable Long File Name Support"
+
+endmenu
+
+config SD_SPI_BUS_NAME
+    string
+    default "spi1" if STM32_SD_SPI1
+    default "spi1a" if STM32_SD_SPI1A
+    default "spi2" if STM32_SD_SPI2
+    default "spi2a" if STM32_SD_SPI2A
+    default "spi2b" if STM32_SD_SPI2B
+    default "spi2_PA10_PA11_PF1" if STM32_SD_SPI2_PA10_PA11_PF1
+    default "spi2_PB2_PB11_PB10" if STM32_SD_SPI2_PB2_PB11_PB10
+    default "spi3" if STM32_SD_SPI3
+    default "spi3a" if STM32_SD_SPI3A
+    default "spi4" if STM32_SD_SPI4
+    default "spi5" if STM32_SD_SPI5
+    default "spi5a" if STM32_SD_SPI5A
+    default "spi6" if STM32_SD_SPI6
+    default "disabled"
 
 ######################################################################
 # Bootloader
@@ -487,7 +578,7 @@ choice
     config STM32_APP_START_8000
         bool "32KiB offset" if MACH_STM32F2 || MACH_STM32F4
     config STM32_APP_START_4000
-        bool "16KiB offset" if MACH_STM32F2 || MACH_STM32F4
+        bool "16KiB offset" if MACH_STM32F0 || MACH_STM32F1 || MACH_STM32G0 || MACH_STM32F2 || MACH_STM32F4
     config STM32_APP_START_2000
         bool "8KiB offset" if MACH_STM32F0 || MACH_STM32F1 || MACH_STM32G0
     config STM32_APP_START_1000
