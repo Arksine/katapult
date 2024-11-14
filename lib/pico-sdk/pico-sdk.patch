@@ -1,0 +1,117 @@
+diff --git a/lib/pico-sdk/hardware/address_mapped.h b/lib/pico-sdk/hardware/address_mapped.h
+index b384f55..635a275 100644
+--- a/lib/pico-sdk/hardware/address_mapped.h
++++ b/lib/pico-sdk/hardware/address_mapped.h
+@@ -7,7 +7,10 @@
+ #ifndef _HARDWARE_ADDRESS_MAPPED_H
+ #define _HARDWARE_ADDRESS_MAPPED_H
+ 
+-#include "pico.h"
++//#include "pico.h"
++#define __force_inline inline
++#define static_assert(a,b)
++#define valid_params_if(a,b)
+ #include "hardware/regs/addressmap.h"
+ 
+ /** \file address_mapped.h
+diff --git a/lib/pico-sdk/hardware/flash.h b/lib/pico-sdk/hardware/flash.h
+index 87dafb1..0227922 100644
+--- a/lib/pico-sdk/hardware/flash.h
++++ b/lib/pico-sdk/hardware/flash.h
+@@ -7,7 +7,10 @@
+ #ifndef _HARDWARE_FLASH_H
+ #define _HARDWARE_FLASH_H
+ 
+-#include "pico.h"
++//#include "pico.h"
++#include <stdint.h>
++#include <stddef.h>
++#include <stdbool.h>
+ 
+ /** \file flash.h
+  *  \defgroup hardware_flash hardware_flash
+diff --git a/lib/pico-sdk/pico/bootrom.h b/lib/pico-sdk/pico/bootrom.h
+index b55e098..6506183 100644
+--- a/lib/pico-sdk/pico/bootrom.h
++++ b/lib/pico-sdk/pico/bootrom.h
+@@ -7,7 +7,13 @@
+ #ifndef _PICO_BOOTROM_H
+ #define _PICO_BOOTROM_H
+ 
+-#include "pico.h"
++//#include "pico.h"
++#define __force_inline inline
++#define static_assert(a,b)
++#define invalid_params_if(a,b)
++#define assert(a)
++#define pico_processor_state_is_nonsecure() 0
++#define PICO_ERROR_INVALID_DATA BOOTROM_ERROR_INVALID_DATA
+ #include "pico/bootrom_constants.h"
+ 
+ /** \file bootrom.h
+diff --git a/lib/pico-sdk/pico/bootrom/lock.h b/lib/pico-sdk/pico/bootrom/lock.h
+index f436557..b98b7a8 100644
+--- a/lib/pico-sdk/pico/bootrom/lock.h
++++ b/lib/pico-sdk/pico/bootrom/lock.h
+@@ -7,7 +7,7 @@
+ #ifndef _PICO_BOOTROM_LOCK_H
+ #define _PICO_BOOTROM_LOCK_H
+ 
+-#include "hardware/boot_lock.h"
++//#include "hardware/boot_lock.h"
+ #include "pico/bootrom_constants.h"
+ 
+ // PICO_CONFIG: PICO_BOOTROM_LOCKING_ENABLED, Enable/disable locking for bootrom functions that use shared reqsources. If this flag is enabled bootrom lock checking is turned on and BOOT locks are taken around the relevant bootrom functions, type=bool, default=1, group=pico_bootrom
+diff --git a/lib/pico-sdk/rp2040/cmsis_include/RP2040.h b/lib/pico-sdk/rp2040/cmsis_include/RP2040.h
+index 8da431f..be66139 100644
+--- a/lib/pico-sdk/rp2040/cmsis_include/RP2040.h
++++ b/lib/pico-sdk/rp2040/cmsis_include/RP2040.h
+@@ -2572,6 +2572,7 @@ typedef struct {                                /*!< RTC Structure
+   * @{
+   */
+ 
++#if 0
+ #define RESETS_BASE                 0x4000C000UL
+ #define PSM_BASE                    0x40010000UL
+ #define CLOCKS_BASE                 0x40008000UL
+@@ -2608,6 +2609,7 @@ typedef struct {                                /*!< RTC Structure
+ #define TBMAN_BASE                  0x4006C000UL
+ #define VREG_AND_CHIP_RESET_BASE    0x40064000UL
+ #define RTC_BASE                    0x4005C000UL
++#endif
+ 
+ /** @} */ /* End of group Device_Peripheral_peripheralAddr */
+ 
+diff --git a/lib/pico-sdk/rp2040/pico/asm_helper.S b/lib/pico-sdk/rp2040/pico/asm_helper.S
+index aff1fc9..59c67db 100644
+--- a/lib/pico-sdk/rp2040/pico/asm_helper.S
++++ b/lib/pico-sdk/rp2040/pico/asm_helper.S
+@@ -4,7 +4,7 @@
+  * SPDX-License-Identifier: BSD-3-Clause
+  */
+ 
+-#include "pico.h"
++//#include "pico.h"
+ 
+ # note we don't do this by default in this file for backwards comaptibility with user code
+ # that may include this file, but not use unified syntax. Note that this macro does equivalent
+diff --git a/lib/pico-sdk/rp2350/cmsis_include/RP2350.h b/lib/pico-sdk/rp2350/cmsis_include/RP2350.h
+index 8ae014e..94d0f17 100644
+--- a/lib/pico-sdk/rp2350/cmsis_include/RP2350.h
++++ b/lib/pico-sdk/rp2350/cmsis_include/RP2350.h
+@@ -5933,6 +5933,7 @@ typedef struct {                                /*!< USB_DPRAM Structure
+   * @{
+   */
+ 
++#if 0
+ #define RESETS_BASE                 0x40020000UL
+ #define PSM_BASE                    0x40018000UL
+ #define CLOCKS_BASE                 0x40010000UL
+@@ -5986,6 +5987,7 @@ typedef struct {                                /*!< USB_DPRAM Structure
+ #define OTP_DATA_RAW_BASE           0x40134000UL
+ #define TBMAN_BASE                  0x40160000UL
+ #define USB_DPRAM_BASE              0x50100000UL
++#endif
+ 
+ /** @} */ /* End of group Device_Peripheral_peripheralAddr */
+ 

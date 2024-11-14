@@ -5,7 +5,7 @@
 #include <string.h> // memcpy
 #include "autoconf.h" // CONFIG_BLOCK_SIZE
 #include "generic/irq.h"
-#include "hw_flash.h" // flash_write_page
+#include "hardware/flash.h" // flash_range_erase
 
 #define MAX(a, b) ((a) > (b))?(a):(b)
 #define PAGE_SIZE (MAX(CONFIG_BLOCK_SIZE, 256))

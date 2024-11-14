@@ -14,8 +14,8 @@ choice
         bool "LPC176x (Smoothieboard)"
     config MACH_STM32
         bool "STMicroelectronics STM32"
-    config MACH_RP2040
-        bool "Raspberry Pi RP2040"
+    config MACH_RPXXXX
+        bool "Raspberry Pi RP2040/RP235x"
 endchoice
 
 source "src/lpc176x/Kconfig"
