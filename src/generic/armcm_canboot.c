@@ -30,18 +30,24 @@ get_bootup_code(void)
     return *req_code;
 }
 
-void
-set_bootup_code(uint64_t code)
+static void __always_inline
+boot_set_bootup_code(uint64_t code)
 {
     uint64_t *req_code = (void*)&_stack_end;
     *req_code = code;
     barrier();
-#if __CORTEX_M >= 7
+#if __CORTEX_M == 7
     SCB_CleanDCache_by_Addr((void*)req_code, sizeof(*req_code));
 #endif
 }
 
 #pragma GCC diagnostic pop
+
+void
+set_bootup_code(uint64_t code)
+{
+    boot_set_bootup_code(code);
+}
 
 // Helper function to read area of flash
 void
@@ -67,10 +73,10 @@ application_jump(void)
     NVIC_SystemReset();
 }
 
-static void
-start_application(void)
+static void __always_inline
+boot_start_application(void)
 {
-    set_bootup_code(0);
+    boot_set_bootup_code(0);
     uint32_t *vtor = (void*)CONFIG_LAUNCH_APP_ADDRESS;
 #if __CORTEX_M > 0 || __VTOR_PRESENT
     SCB->VTOR = (uint32_t)vtor;
@@ -78,19 +84,42 @@ start_application(void)
     asm volatile("MSR msp, %0\n    bx %1" : : "r"(vtor[0]), "r"(vtor[1]));
 }
 
-void __noreturn __visible
+// Inlined version of memset (to avoid function calls during intial boot code)
+static void __always_inline
+boot_memset(void *s, int c, size_t n)
+{
+    volatile uint32_t *p = s;
+    while (n) {
+        *p++ = c;
+        n -= sizeof(*p);
+    }
+}
+
+// Inlined version of memcpy (to avoid function calls during intial boot code)
+static void __always_inline
+boot_memcpy(void *dest, const void *src, size_t n)
+{
+    const uint32_t *s = src;
+    volatile uint32_t *d = dest;
+    while (n) {
+        *d++ = *s++;
+        n -= sizeof(*d);
+    }
+}
+
+void __noreturn __visible __section(".text.armcm_boot.stage_two")
 reset_handler_stage_two(void)
 {
     uint64_t bootup_code = get_bootup_code();
     if (bootup_code == REQUEST_START_APP)
-        start_application();
+        boot_start_application();
 
     // Copy global variables from flash to ram
     uint32_t count = (&_data_end - &_data_start) * 4;
-    __builtin_memcpy(&_data_start, &_data_flash, count);
+    boot_memcpy(&_data_start, &_data_flash, count);
 
     // Clear the bss segment
-    __builtin_memset(&_bss_start, 0, (&_bss_end - &_bss_start) * 4);
+    boot_memset(&_bss_start, 0, (&_bss_end - &_bss_start) * 4);
 
     barrier();
 
@@ -106,7 +135,7 @@ reset_handler_stage_two(void)
 }
 
 // Initial code entry point - invoked by the processor after a reset
-asm(".section .text.ResetHandler\n"
+asm(".section .text.armcm_boot.stage_one\n"
     ".balign 8\n"
     ".8byte " __stringify(CANBOOT_SIGNATURE) "\n"
     ".global ResetHandler\n"

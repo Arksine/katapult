@@ -18,7 +18,7 @@ try_request_canboot(void)
     uint64_t *req_sig = (uint64_t *)bl_vectors[0];
     irq_disable();
     *req_sig = REQUEST_CANBOOT;
-#if __CORTEX_M >= 7
+#if __CORTEX_M == 7
     SCB_CleanDCache_by_Addr((void*)req_sig, sizeof(*req_sig));
 #endif
     NVIC_SystemReset();
