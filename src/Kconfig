@@ -120,6 +120,9 @@ config BUILD_DEPLOYER
 config HAVE_CHIPID
     bool
     default n
+config HAVE_BOARD_CHECK_DOUBLE_RESET
+    bool
+    default n
 
 config KATAPULT_VERSION
     string

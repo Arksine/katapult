@@ -32,11 +32,14 @@ check_button_pressed(void)
 #define DOUBLE_CLICK_MAX_US 500000
 
 // Check for a bootloader request via double tap of reset button
-static void
+static int
 check_double_reset(void)
 {
     if (!CONFIG_ENABLE_DOUBLE_RESET)
-        return;
+        return 0;
+    if (CONFIG_HAVE_BOARD_CHECK_DOUBLE_RESET)
+        // Use board specific detection mechanism
+        return board_check_double_reset();
     // Set request signature and delay - this enters the bootloader if
     // the reset button is double clicked
     udelay(DOUBLE_CLICK_MIN_US);
@@ -44,6 +47,7 @@ check_double_reset(void)
     udelay(DOUBLE_CLICK_MAX_US - DOUBLE_CLICK_MIN_US);
     // No reset, clear the bootup code
     set_bootup_code(0);
+    return 0;
 }
 
 // Check if bootloader or application should be started
@@ -60,8 +64,5 @@ bootentry_check(void)
         set_bootup_code(0);
         return 1;
     }
-    check_double_reset();
-
-    // jump to app
-    return 0;
+    return check_double_reset();
 }
