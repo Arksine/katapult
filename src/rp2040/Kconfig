@@ -7,6 +7,7 @@ config RPXXXX_SELECT
     default y
     select HAVE_GPIO
     select HAVE_CHIPID
+    select HAVE_BOARD_CHECK_DOUBLE_RESET if MACH_RP2350
 
 config BOARD_DIRECTORY
     string

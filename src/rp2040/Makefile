@@ -21,6 +21,7 @@ mcu-y += generic/armcm_irq.c generic/crc16_ccitt.c
 mcu-y += ../lib/pico-sdk/hardware/flash.c
 mcu-$(CONFIG_MACH_RP2040) += rp2040/timer.c rp2040/bootrom.c
 mcu-$(CONFIG_MACH_RP2350) += generic/armcm_timer.c rp2040/rp2350_bootrom.c
+mcu-$(CONFIG_MACH_RP2350) += rp2040/rp2350_dblreset.c
 
 src-y += generic/armcm_canboot.c $(mcu-y)
 src-$(CONFIG_USBSERIAL) += rp2040/usbserial.c generic/usb_cdc.c rp2040/chipid.c
