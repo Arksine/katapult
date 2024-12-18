@@ -69,7 +69,7 @@ lib/rp2040_flash/rp2040_flash:
 
 flash: $(OUT)katapult.uf2 lib/rp2040_flash/rp2040_flash
 	@echo "  Flashing $< "
-	$(Q) $(if $(NOSUDO),,sudo) ./lib/rp2040_flash/rp2040_flash $(OUT)katapult.uf2
+	$(Q) $(if $(NOSUDO),,sudo) ./lib/rp2040_flash/rp2040_flash $(OUT)katapult.withclear.uf2
 
 # Deployer build
 deployer-y += generic/armcm_boot.c generic/armcm_reset.c $(mcu-y)
