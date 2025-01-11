@@ -68,6 +68,9 @@ KLIPPER_ADMIN_ID = 0x3f0
 KLIPPER_SET_NODE_CMD = 0x01
 KLIPPER_REBOOT_CMD = 0x02
 
+# Klipper request bootloader command (physical serial)
+KLIPPER_BL_REQ_CMD = b'~ \x1c Request Serial Bootloader!! ~\n'
+
 # CAN Admin Defs
 CANBUS_ID_ADMIN = 0x3f0
 CANBUS_ID_ADMIN_RESP = 0x3f1
@@ -483,8 +486,7 @@ class CanSocket:
             raise FlashError("Unable to bind socket to can0")
         self.closed = False
         self.cansock.setblocking(False)
-        self._loop.add_reader(
-            self.cansock.fileno(), self._handle_can_response)
+        self._loop.add_reader(self.cansock.fileno(), self._handle_can_response)
         self._jump_to_bootloader(uuid)
         await asyncio.sleep(.5)
         if req_only:
@@ -533,6 +535,15 @@ class SerialSocket:
         self._loop = loop
         self.serial: Optional[Serial] = None
         self.node = CanNode(0, self)
+
+    def _jump_to_bootloader(self):
+        output_line("Sending bootloader jump command...")
+        baudrate = self.serial.baudrate
+        self.serial.baudrate = 1200
+        self.serial.dtr = True
+        self.serial.dtr = False
+        self.serial.baudrate = baudrate
+        self.send(None, KLIPPER_BL_REQ_CMD)
 
     def _handle_response(self) -> None:
         assert self.serial is not None
@@ -605,7 +616,7 @@ class SerialSocket:
                         )
                         raise FlashError(f"Serial device {dev_path} in use")
 
-    async def run(self, intf: str, baud: int, fw_path: pathlib.Path) -> None:
+    async def run(self, intf: str, baud: int, fw_path: pathlib.Path, req_only: bool) -> None:
         if not fw_path.is_file():
             raise FlashError("Invalid firmware path '%s'" % (fw_path))
         await self.validate_device(intf)
@@ -619,6 +630,11 @@ class SerialSocket:
             raise FlashError("Unable to open serial port: %s" % (e,))
         self.serial = serial_dev
         self._loop.add_reader(self.serial.fileno(), self._handle_response)
+        await asyncio.sleep(.5)
+        if req_only:
+            self._jump_to_bootloader()
+            output_line("Bootloader request command sent")
+            return
         flasher = CanFlasher(self.node, fw_path)
         try:
             await flasher.connect_btl()
@@ -629,6 +645,24 @@ class SerialSocket:
             # there is an error it will exit the bootloader
             # unless comms were broken
             await flasher.finish()
+
+    async def run_query(self, intf: str, baud: int):
+        try:
+            serial_dev = Serial(                            # type: ignore
+                baudrate=baud, timeout=0, exclusive=True
+            )
+            serial_dev.port = intf
+            serial_dev.open()
+        except (OSError, IOError, SerialException) as e:
+            raise FlashError("Unable to open serial port: %s" % (e,))
+        self.serial = serial_dev
+        self._loop.add_reader(self.serial.fileno(), self._handle_response)
+        flasher = CanFlasher(self.node, None)
+        try:
+            await flasher.connect_btl()
+        except Exception:
+            self.close()
+            raise FlashError("Unable to connect to bootloader")
 
     def close(self):
         if self.serial is None:
@@ -675,7 +709,10 @@ async def main(args: argparse.Namespace) -> int:
                 )
             output_line(f"Flashing Serial Device {args.device}, baud {args.baud}")
             sock = SerialSocket(loop)
-            await sock.run(args.device, args.baud, fpath)
+            if args.query:
+                await sock.run_query(args.device, args.baud)
+            else:
+                await sock.run(args.device, args.baud, fpath, req_only)
     except Exception:
         logging.exception("Flash Error")
         return -1
@@ -684,6 +721,8 @@ async def main(args: argparse.Namespace) -> int:
             sock.close()
     if args.query:
         output_line("Query Complete")
+    elif args.request_bootloader:
+        output_line("Bootloader request complete")
     else:
         output_line("Flash Success")
     return 0
@@ -722,7 +761,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "-r", "--request-bootloader", action="store_true",
-        help="Requests the bootloader and exits (CAN only)"
+        help="Requests the bootloader and exits (CAN|Virtual serial|Physical serial)"
     )
 
     args = parser.parse_args()

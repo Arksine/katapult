@@ -142,7 +142,7 @@ options:
   -q, --query           Query Bootloader Device IDs
   -v, --verbose         Enable verbose responses
   -r, --request-bootloader
-                        Requests the bootloader and exits (CAN only)
+                        Requests the bootloader and exits (CAN|Virtual serial|Physical serial))
 ```
 
 ### Can Programming
@@ -157,7 +157,9 @@ The `-f` option defaults to `~/klipper/out/klipper.bin` when omitted.
 
 The `-d` option is required.  The `-b` option defaults to `250000` if omitted.
 
-### Request Bootloader (CAN Devices Only)
+### Request Bootloader
+
+#### CAN Devices
 
 When the `-r` option is supplied in addition to `-u` (and optionally `-i`)
 the script will request that the node enter the bootloader.  The script will
@@ -167,6 +169,17 @@ bridge mode". These devices upload firmware using DFU and/or Katapult-USB. This
 option allows the user to enter the bootloader without physical access to the
 board, then use the appropriate tool (`dfu-util` or `flashtool.py -d`) to
 upload the new binary.
+
+#### Virtual Serial and Physical Serial devices
+
+For devices with Klipper installed when the `-r` option is supplied the script 
+will request that the device enter the bootloader. The script will then immediately 
+exit, no attempt will be made to upload a binary. After entering the bootloader, 
+you can query information about the bootloader by specifying the `-q` option.
+The methods for entering the bootloader for both types of devices are 
+described [here](https://github.com/Klipper3d/klipper/blob/master/docs/Bootloader_Entry.md).
+After that, you can run the utility again without the `-r` parameter to write 
+the firmware.
 
 ## Katapult Deployer
 
