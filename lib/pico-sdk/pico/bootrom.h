@@ -267,6 +267,8 @@ static inline void __attribute__((noreturn)) reset_usb_boot(uint32_t usb_activit
     rom_reset_usb_boot(usb_activity_gpio_pin_mask, disable_interface_mask);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored  "-Wold-style-definition"
 /*!
  * \brief Connect the SSI/QMI to the QSPI pads
  * \ingroup pico_bootrom
@@ -413,6 +415,8 @@ static inline void rom_flash_enter_cmd_xip() {
     rom_flash_enter_cmd_xip_fn func = (rom_flash_enter_cmd_xip_fn) rom_func_lookup_inline(ROM_FUNC_FLASH_ENTER_CMD_XIP);
     func();
 }
+
+#pragma GCC diagnostic pop
 
 #if !PICO_RP2040
 #ifdef __riscv
