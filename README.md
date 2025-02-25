@@ -31,6 +31,8 @@ make
 The menuconfig will present the following options:
 - `Microcontroller Architecture`: Choose between lpc176x, stm32 and rp2040
 - `Processor model`: Options depend on the chosen architecture
+- `SD Card Configuration`: See the [SD Card Configuration](#sd-card-configuration)
+  section below.
 - `Build Katapult deployment application`: See the [deployer](#katapult-deployer)
    section below.
 - `Disable SWD at startup`:  This is an option for GigaDevice STM32F103
@@ -147,10 +149,11 @@ options:
                         Path to Klipper firmware file
   -u <uuid>, --uuid <uuid>
                         Can device uuid
-  -q, --query           Query Bootloader Device IDs
+  -q, --query           Query Bootloader Device IDs (CANBus only)
   -v, --verbose         Enable verbose responses
   -r, --request-bootloader
                         Requests the bootloader and exits
+  -s, --status          Connect to bootloader and print status
 ```
 
 ### Can Programming
@@ -184,6 +187,90 @@ upload the new binary.
 
 Additionally, the `-r` option can be used with devices connected to the host
 over a UART connection to request Klipper's bootloader.
+
+## SD Card Programming
+
+Katapult offers optional SD Card support.  When configured, an SD Card
+may be used to upload firmware in addition to the primary interface
+(CANBus, USB, or UART).  This is useful for bench updates or as a
+fallback when it isn't possible to flash using the primary interface.
+
+Unlike most stock bootloaders, Katapult does not initialize the SD Card
+and check for a new firmware file on every restart. The user must explicitly
+enter the bootloader to initiate an SD Card upload.  It is recommended to
+either configure the "double reset" or a GPIO Button when enabling SD Card
+programming so bootloader entry is possible without using `flashtool.py`.
+
+Upon entering the bootloader, Katapult will look for a new `firmware file`,
+and if detected it will begin writing.  If a `status led` is configured it
+will blink rapidly during the programming procedure.  After successful completion
+Katapult will rename the firmware file's extension to `.cur`, reset the MCU,
+and jump to the application.  If Katapult encounters an error during programming
+it will attempt to rename the firmware file with a `.err` extension, then drop
+to command mode.
+
+If the `firmware file` does not exist or if there is an error initializing the
+SD Card, Katapult will enter command mode.  In this mode the `status led`
+will blink slowly, and Katapult is read to accept commands over the primary
+interface, such as those issued by `flashtool.py`.
+
+Katapult supports SPI and Software SPI SD Card interfaces for all supported
+micro-controllers. SDIO is available for STM32F4 series MCUs.
+
+### SD Card Configuration
+
+The following Options are available in the `SD Card Configuration` menu:
+- `SD Card Interface`:  The interface used to communicate with the SD Card.
+  Choices are `disabled`, hardware SPI modes, Software SPI, and SDIO modes.
+- `SD Card Software SPI Pins`:  Only available when `Software SPI` is selected
+   as the `SD Card Interface`.  Must be three comma separated pins; MISO, MOSI,
+   and SCLK.
+- `SD Card SPI CS Pin`:  The Chip Select pin when one of the SPI modes (including
+  Software SPI) is selected.
+- `Firmware file name`:  The name of the firmware file that will trigger an upload.
+  Defaults to `firmware.bin`. **NOTE:**  Avoid using a `.cur` or `.err` extensions
+  when customizing the file name.  Doing so will result in Katapult deleting the
+  firmware file after an upload rather than renaming it.
+- `Enable Long File Name Support`:  When enabled, the firmware file name supports
+  FAT long file names.  This allows the `Firmware file name` to have a base name
+  longer than 8 characters and extensions longer than 3 characters.  This option
+  increases the size of the binary by roughly 2.5 KiB.
+
+For most configurations the total size of Katapult's binary should be under 16KiB
+when SD Card support is configured, thus a 16 KB `Application start offset` should be sufficient.  One exception to this is the `RP2040` when the primary interface
+is `CANBus` and `Long File Name Support` is enabled.  This will result in a binary
+larger than 16 KiB.  It should be noted that `Klipper` currently only supports a
+16 KiB bootloader offset for the `RP2040`.
+
+### Troubleshooting
+
+As mentioned above, Katapult will enter command mode if it encounters an error
+during initialization or programming.  When in command mode it is possible
+to use the flashtool's  `-s` option to query Katapult's status which includes
+SD Card status:
+
+```
+./scripts/flashtool.py -s -u aabbccddeeff
+Connecting to CAN UUID aabbccddeeff on interface can0
+Resetting all bootloader node IDs...
+Detected Klipper binary version v0.12.0-302-g87ac69363, MCU: stm32f103xe
+Attempting to connect to bootloader
+Katapult Connected
+Software Version: v0.0.1-95-g2d7bd0c
+Protocol Version: 1.1.0
+Block Size: 64 bytes
+Application Start: 0x8004000
+MCU type: stm32f103xe
+Verifying canbus connection
+
+*** SD Card Status ***
+Detected SD Card Interface: HARDWARE_SPI
+Last SD Flash State: NO_DISK
+SD Flags: DEINITIALIZED
+Last Error: NO_IDLE_STATE
+Status Request Complete
+```
+
 
 ## Katapult Deployer
 

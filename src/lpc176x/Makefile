@@ -21,6 +21,7 @@ src-y += generic/armcm_canboot.c $(mcu-y)
 src-$(CONFIG_USBSERIAL) += lpc176x/usbserial.c lpc176x/chipid.c
 src-$(CONFIG_USBSERIAL) += generic/usb_cdc.c
 src-$(CONFIG_SERIAL) += lpc176x/serial.c generic/serial_irq.c
+src-$(CONFIG_SDCARD_SPI) += lpc176x/spi.c
 
 BUILDBINARY_FLAGS = -l
 

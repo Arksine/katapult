@@ -97,6 +97,8 @@ class HandleEnumerations:
                 pin_num = i + offset
                 avail_pins[pin_name] = pin_num
         return avail_pins
+    def get_enumeration(self, enum):
+        return self.enumerations.get(enum)
     def generate_code(self, options):
         return ""
 
@@ -146,6 +148,8 @@ class HandleConstants:
         if pin in reserved_pins:
             error("Pin %s is reserved by an active MCU peripheral" % (pin,))
         return gpio
+    def get_constant(self, name):
+        return self.constants.get(name)
     def generate_code(self, options):
         return ""
 
@@ -300,6 +304,79 @@ int32_t button_gpio = %d, button_high = %d, button_pullup = %d; // "%s"
 
 Handlers.append(HandleButton())
 
+######################################################################
+# SDCARD SPI Configuration
+######################################################################
+
+class HandleSdcardConfig:
+    def __init__(self):
+        self.pin = None
+        self.ctr_dispatch = { 'DECL_SD_SPI_CS_PIN': self.decl_cs_pin }
+    def decl_cs_pin(self, req):
+        pin = req.split(None, 1)[1].strip()
+        if pin.startswith('"') and pin.endswith('"'):
+            pin = pin[1:-1].strip()
+        self.pin = pin
+    def generate_code(self, options):
+        if self.pin is None:
+            return ""
+        cs_gpio = 0
+        pin = self.pin
+        if not pin:
+            error("SDCARD CS Pin not set")
+        cs_gpio = HandlerConstants.lookup_pin(pin)
+        spi_bus = HandlerConstants.get_constant("SD_SPI_BUS_NAME")
+        spi_bus_num = 0
+        if spi_bus is None:
+            spi_bus = "No Bus Set"
+        elif spi_bus and spi_bus != "disabled":
+            spi_enums = HandlerEnumerations.get_enumeration("spi_bus") or {}
+            if spi_bus not in spi_enums:
+                mcu = HandlerConstants.get_constant("MCU") or "unknown"
+                error("Bus %s not available for MCU %s" % (spi_bus, mcu))
+            spi_bus_num = spi_enums[spi_bus]
+
+        fmt = """
+uint32_t sdcard_cs_gpio = %d; // "%s"
+uint32_t sdcard_spi_bus = %d; // "%s"
+"""
+        return fmt % (cs_gpio, self.pin, spi_bus_num, spi_bus)
+
+Handlers.append(HandleSdcardConfig())
+
+######################################################################
+# SDCARD Software SPI Pins
+######################################################################
+
+class HandleSoftwareSPIPins:
+    def __init__(self):
+        self.pins = []
+        self.ctr_dispatch = {
+            "DECL_SWSPI_PINS": self.decl_software_spi_pins
+        }
+    def decl_software_spi_pins(self, req):
+        pins = req.split(None, 1)[1].strip()
+        if pins.startswith('"') and pins.endswith('"'):
+            pins = pins[1:-1].strip()
+        if pins:
+            self.pins = [p.strip() for p in pins.split(",") if p.strip()]
+        if not len(self.pins) == 3:
+            error("Sofware SPI pins not correctly configured")
+    def generate_code(self, options):
+        if not self.pins:
+            return ""
+        args = []
+        for pin in self.pins:
+            gpio = HandlerConstants.lookup_pin(pin)
+            args.extend([gpio, pin])
+        fmt = """
+uint32_t swspi_miso_gpio = %d; // "%s"
+uint32_t swspi_mosi_gpio = %d; // "%s"
+uint32_t swspi_sclk_gpio = %d; // "%s"
+"""
+        return fmt % (*args,)
+
+Handlers.append(HandleSoftwareSPIPins())
 
 ######################################################################
 # Main code
