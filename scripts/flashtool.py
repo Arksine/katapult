@@ -773,10 +773,19 @@ class CanSocket(BaseSocket):
             output(".")
             usb_info = get_usb_info(self._can_bridge_path)
             mfr = usb_info.get("manufacturer")
-            if mfr == "katapult":
+            usb_id = usb_info.get("usb_id", "")
+            product = usb_info.get("product")
+            if usb_id and usb_id != GS_CAN_USB_ID:
                 await asyncio.sleep(.5)
-                serial_path = self.usb_serial_path
-                output_line(f"Katapult detected at serial port {serial_path}")
+                output_line("done")
+                output_line(f"Detected new USB Device: {usb_id} {mfr} {product}")
+                if mfr == "katapult" or usb_id == KATAPULT_USB_ID:
+                    serial_path = self.usb_serial_path
+                    output_line(f"Katapult detected at serial port {serial_path}")
+                else:
+                    # Device is not Katapult, force exit
+                    self._args.request_bootloader = True
+                    output_line("Device is not Katapult, exiting...")
                 break
         else:
             output_line("timed out")
@@ -938,6 +947,8 @@ class SerialSocket(BaseSocket):
             output_line(f"Device path {device} is not a usb device")
             return device
         stable_path = get_stable_usb_symlink(device)
+        usb_info = get_usb_info(usb_dev_path)
+        start_usb_id = usb_info["usb_id"]
         fd: Optional[int] = None
         with contextlib.suppress(OSError):
             fd = os.open(str(device), os.O_RDWR)
@@ -958,9 +969,26 @@ class SerialSocket(BaseSocket):
             output(".")
             usb_info = get_usb_info(usb_dev_path)
             mfr = usb_info.get("manufacturer")
-            if mfr == "katapult":
-                output_line("Katapult detected")
-                await asyncio.sleep(1.0)
+            product = usb_info.get("product")
+            usb_id = usb_info.get("usb_id", "")
+            if usb_id and usb_id != start_usb_id:
+                await asyncio.sleep(.5)
+                output_line("done")
+                output_line(f"Detected new USB Device: {usb_id} {mfr} {product}")
+                if mfr == "katapult" or usb_id == KATAPULT_USB_ID:
+                    # prefer path resolved from sysfs usb path
+                    path_match = list(
+                        usb_dev_path.glob(f"{usb_dev_path.name}:*/tty/tty*")
+                    )
+                    if len(path_match) == 1:
+                        det_path = pathlib.Path(f"/dev/{path_match[0].name}")
+                        if det_path.exists():
+                            stable_path = det_path
+                    output_line(f"Katapult detected on {stable_path}")
+                else:
+                    # Device is not Katapult, force exit
+                    self._args.request_bootloader = True
+                    output_line("Device is not Katapult, exiting...")
                 break
         else:
             output_line("timed out")
