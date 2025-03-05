@@ -301,9 +301,9 @@ class CanFlasher:
         if self.klipper_dict is not None:
             bin_mcu = self.klipper_dict.get("config", {}).get("MCU", "")
             if bin_mcu and bin_mcu != mcu_type:
-                output_line(
-                    "WARNING: MCU returned by Katapult does not match MCU"
-                    "stored in klipper.bin.\n"
+                raise FlashError(
+                    "MCU returned by Katapult does not match MCU"
+                    "identified in klipper.bin.\n"
                     f"Katapult MCU: {mcu_type}\n"
                     f"Klipper Binary MCU: {bin_mcu}"
                 )
