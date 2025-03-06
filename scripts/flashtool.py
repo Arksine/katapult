@@ -283,7 +283,7 @@ class CanFlasher:
         proto_version_str = ".".join([str(v) for v in self.proto_version])
         if self.block_size not in [64, 128, 256, 512]:
             raise FlashError("Invalid Block Size: %d" % (self.block_size,))
-        mcu_info.rstrip(b"\x00")
+        mcu_info = mcu_info.rstrip(b"\x00")
         if self.proto_version >= (1, 1, 0):
             mcu_bytes, sv_bytes = mcu_info.split(b"\x00", maxsplit=1)
             mcu_type = mcu_bytes.decode()
@@ -302,7 +302,7 @@ class CanFlasher:
             bin_mcu = self.klipper_dict.get("config", {}).get("MCU", "")
             if bin_mcu and bin_mcu != mcu_type:
                 raise FlashError(
-                    "MCU returned by Katapult does not match MCU"
+                    "MCU returned by Katapult does not match MCU "
                     "identified in klipper.bin.\n"
                     f"Katapult MCU: {mcu_type}\n"
                     f"Klipper Binary MCU: {bin_mcu}"
