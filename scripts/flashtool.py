@@ -289,7 +289,7 @@ class CanFlasher:
             mcu_type = mcu_bytes.decode()
             self.software_version = sv_bytes.decode()
         else:
-            mcu_type = mcu_info.decode()
+            mcu_type = mcu_info.decode().rstrip("\x00")
         output_line(
             f"Katapult Connected\n"
             f"Software Version: {self.software_version}\n"
@@ -303,7 +303,7 @@ class CanFlasher:
             if bin_mcu and bin_mcu != mcu_type:
                 raise FlashError(
                     "MCU returned by Katapult does not match MCU"
-                    "identified in klipper.bin.\n"
+                    " identified in klipper.bin.\n"
                     f"Katapult MCU: {mcu_type}\n"
                     f"Klipper Binary MCU: {bin_mcu}"
                 )
