@@ -755,7 +755,15 @@ class CanSocket(BaseSocket):
                 f"Found Klipper USB-CAN bridge on {can_intf}, serial {serial_no}"
             )
             if serial_no:
-                det_uuid = convert_usbsn_to_uuid(serial_no)
+                try:
+                    det_uuid = convert_usbsn_to_uuid(serial_no)
+                except Exception:
+                    output_line(
+                        f"Failed to convert can bridge serial number {serial_no} "
+                        f"to a uuid for device {item.name}"
+                    )
+                    logging.exception("UUID conversion failed")
+                    return
                 logging.info(
                     f"Detected UUID: {det_uuid:x}, provided UUID: {self._uuid:x}"
                 )
