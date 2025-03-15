@@ -959,16 +959,13 @@ class SerialSocket(BaseSocket):
         start_usb_id = usb_info["usb_id"]
         fd: Optional[int] = None
         with contextlib.suppress(OSError):
-            fd = os.open(str(device), os.O_RDWR)
-            fcntl.ioctl(
-                fd, termios.TIOCMBIS, struct.pack('I', termios.TIOCM_DTR)
-            )
+            fd = os.open(str(device), os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+            dtr_data = struct.pack('I', termios.TIOCM_DTR)
+            fcntl.ioctl(fd, termios.TIOCMBIS, dtr_data)
             t = termios.tcgetattr(fd)
             t[4] = t[5] = termios.B1200
             termios.tcsetattr(fd, termios.TCSANOW, t)
-            fcntl.ioctl(
-                fd, termios.TIOCMBIC, struct.pack('I', termios.TIOCM_DTR)
-            )
+            fcntl.ioctl(fd, termios.TIOCMBIC, dtr_data)
         if fd is not None:
             os.close(fd)
         output("Waiting for USB Reconnect.")
