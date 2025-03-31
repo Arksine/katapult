@@ -285,9 +285,12 @@ class CanFlasher:
             raise FlashError("Invalid Block Size: %d" % (self.block_size,))
         mcu_info = mcu_info.rstrip(b"\x00")
         if self.proto_version >= (1, 1, 0):
-            mcu_bytes, sv_bytes = mcu_info.split(b"\x00", maxsplit=1)
-            mcu_type = mcu_bytes.decode()
-            self.software_version = sv_bytes.decode()
+            build_info = mcu_info.split(b"\x00", maxsplit=1)
+            mcu_type = build_info[0].decode()
+            if len(build_info) == 2:
+                self.software_version = build_info[1].decode()
+            else:
+                output_line("Katapult build not reporting software version!")
         else:
             mcu_type = mcu_info.decode()
         output_line(
