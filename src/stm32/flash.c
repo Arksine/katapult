@@ -34,7 +34,7 @@ flash_get_page_size(uint32_t addr)
         return *flash_size <= 64 ? 1024 : 2 * 1024;
     } else if (CONFIG_MACH_STM32G0) {
         return 2 * 1024;
-    } else if (CONFIG_MACH_STM32H7) {
+    } else if (CONFIG_MACH_STM32H7 || CONFIG_MACH_STM32G4) {
         return 128 * 1024;
     }
 }
