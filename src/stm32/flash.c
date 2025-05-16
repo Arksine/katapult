@@ -32,7 +32,7 @@ flash_get_page_size(uint32_t addr)
             return 2 * 1024;
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
         return *flash_size <= 64 ? 1024 : 2 * 1024;
-    } else if (CONFIG_MACH_STM32G0) {
+    } else if (CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4) {
         return 2 * 1024;
     } else if (CONFIG_MACH_STM32H7) {
         return 128 * 1024;
@@ -110,7 +110,7 @@ erase_page(uint32_t page_address)
     FLASH->CR = FLASH_CR_PER;
     FLASH->AR = page_address;
     FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT;
-#elif CONFIG_MACH_STM32G0
+#elif CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4
     uint32_t pidx = (page_address - 0x08000000) / (2 * 1024);
     if (pidx >= 64) {
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
@@ -150,7 +150,7 @@ write_block(uint32_t block_address, uint32_t *data)
         writew(&page[i], data16[i]);
         wait_flash();
     }
-#elif CONFIG_MACH_STM32G0
+#elif CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4
     uint32_t *page = (void*)block_address;
     FLASH->CR = FLASH_CR_PG;
     for (int i = 0; i < CONFIG_BLOCK_SIZE / 8; i++) {
