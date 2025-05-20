@@ -29,21 +29,22 @@ CFLAGS_katapult.elf += -T $(OUT)src/generic/armcm_link.ld
 $(OUT)katapult.elf: $(OUT)src/generic/armcm_link.ld
 
 # Add source files
-src-y += stm32/flash.c stm32/clockline.c stm32/dfu_reboot.c
-src-y += generic/armcm_irq.c generic/crc16_ccitt.c generic/armcm_canboot.c
-src-$(CONFIG_MACH_STM32F0) += stm32/stm32f0.c ../lib/stm32f0/system_stm32f0xx.c
-src-$(CONFIG_MACH_STM32F1) += stm32/stm32f1.c ../lib/stm32f1/system_stm32f1xx.c
-src-$(CONFIG_MACH_STM32F2) += stm32/stm32f4.c ../lib/stm32f2/system_stm32f2xx.c
-src-$(CONFIG_MACH_STM32F4) += stm32/stm32f4.c ../lib/stm32f4/system_stm32f4xx.c
-src-$(CONFIG_MACH_STM32G0) += stm32/stm32g0.c
-src-$(CONFIG_MACH_STM32G4) += stm32/stm32g4.c ../lib/stm32g4/system_stm32g4xx.c
-src-$(CONFIG_MACH_STM32H7) += stm32/stm32h7.c ../lib/stm32h7/system_stm32h7xx.c
+mcu-y += stm32/flash.c stm32/clockline.c stm32/dfu_reboot.c
+mcu-y += generic/armcm_irq.c generic/crc16_ccitt.c
+mcu-$(CONFIG_MACH_STM32F0) += stm32/stm32f0.c ../lib/stm32f0/system_stm32f0xx.c
+mcu-$(CONFIG_MACH_STM32F1) += stm32/stm32f1.c ../lib/stm32f1/system_stm32f1xx.c
+mcu-$(CONFIG_MACH_STM32F2) += stm32/stm32f4.c ../lib/stm32f2/system_stm32f2xx.c
+mcu-$(CONFIG_MACH_STM32F4) += stm32/stm32f4.c ../lib/stm32f4/system_stm32f4xx.c
+mcu-$(CONFIG_MACH_STM32G0) += stm32/stm32g0.c
+mcu-$(CONFIG_MACH_STM32G4) += stm32/stm32g4.c ../lib/stm32g4/system_stm32g4xx.c
+mcu-$(CONFIG_MACH_STM32H7) += stm32/stm32h7.c ../lib/stm32h7/system_stm32h7xx.c
 timer-src-y := generic/armcm_timer.c
 timer-src-$(CONFIG_MACH_STM32F0) := stm32/stm32f0_timer.c
 timer-src-$(CONFIG_MACH_STM32G0) := stm32/stm32f0_timer.c
 gpio-src-y := stm32/gpio.c stm32/gpioperiph.c
 gpio-src-$(CONFIG_MACH_STM32F1) := stm32/gpio.c
-src-y += $(timer-src-y) $(gpio-src-y)
+mcu-y += $(timer-src-y) $(gpio-src-y)
+src-y += generic/armcm_canboot.c $(mcu-y)
 serial-src-y := stm32/serial.c
 serial-src-$(CONFIG_MACH_STM32F0) := stm32/stm32f0_serial.c
 serial-src-$(CONFIG_MACH_STM32G0) := stm32/stm32f0_serial.c
