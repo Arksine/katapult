@@ -405,10 +405,11 @@ class CanFlasher:
             await asyncio.sleep(.5)
         raise FlashError("Error sending command [%s] to Device" % (cmdname))
 
-    async def send_file(self):
+    async def send_file(self, dry_run=False):
         last_percent = 0
-        output_line("Flashing '%s'..." % (self.firmware_path))
-        output("\n[")
+        if not dry_run:
+            output_line("Flashing '%s'..." % (self.firmware_path))
+            output("\n[")
         with open(self.firmware_path, 'rb') as f:
             f.seek(0, os.SEEK_END)
             self.file_size = f.tell()
@@ -423,30 +424,34 @@ class CanFlasher:
                     buf += b"\xFF" * (self.block_size - len(buf))
                 self.fw_sha.update(buf)
                 prefix = struct.pack("<I", flash_address)
-                for _ in range(3):
-                    resp = await self.send_command('SEND_BLOCK', prefix + buf)
-                    recd_addr, = struct.unpack("<I", resp)
-                    if recd_addr == flash_address:
-                        break
-                    logging.info(
-                        f"Block write mismatch: expected: {flash_address:4X}, "
-                        f"received: {recd_addr:4X}"
-                    )
-                    await asyncio.sleep(.1)
-                else:
-                    raise FlashError(
-                        f"Flash write failed, block address 0x{recd_addr:4X}"
-                    )
+                if not dry_run:
+                    # Write out block
+                    for _ in range(3):
+                        resp = await self.send_command('SEND_BLOCK', prefix + buf)
+                        recd_addr, = struct.unpack("<I", resp)
+                        if recd_addr == flash_address:
+                            break
+                        logging.info(
+                            f"Block write mismatch: expected: {flash_address:4X}, "
+                            f"received: {recd_addr:4X}"
+                        )
+                        await asyncio.sleep(.1)
+                    else:
+                        raise FlashError(
+                            f"Flash write failed, block address 0x{recd_addr:4X}"
+                        )
                 flash_address += self.block_size
                 self.block_count += 1
                 uploaded = self.block_count * self.block_size
                 pct = int(uploaded / float(self.file_size) * 100 + .5)
                 if pct >= last_percent + 2:
                     last_percent += 2.
-                    output("#")
-            resp = await self.send_command('SEND_EOF')
-            page_count, = struct.unpack("<I", resp)
-            output_line("]\n\nWrite complete: %d pages" % (page_count))
+                    if not dry_run:
+                        output("#")
+            if not dry_run:
+                resp = await self.send_command('SEND_EOF')
+                page_count, = struct.unpack("<I", resp)
+                output_line("]\n\nWrite complete: %d pages" % (page_count))
 
     async def verify_file(self):
         last_percent = 0
@@ -535,7 +540,7 @@ class BaseSocket:
     @property
     def is_flash_req(self) -> bool:
         return not (
-            self.is_bootloader_req or self.is_status_req or self.is_query
+            self.is_bootloader_req or self.is_status_req or self.is_query or self.is_compare_req
         )
 
     @property
@@ -545,6 +550,10 @@ class BaseSocket:
     @property
     def is_status_req(self) -> bool:
         return self._args.status
+
+    @property
+    def is_compare_req(self) -> bool:
+        return self._args.compare_only
 
     @property
     def is_query(self) -> bool:
@@ -559,7 +568,7 @@ class BaseSocket:
         raise NotImplementedError()
 
     def _check_firmware(self) -> None:
-        if self.is_flash_req and not self._fw_path.is_file():
+        if (self.is_flash_req or self.is_compare_req) and not self._fw_path.is_file():
             raise FlashError("Invalid firmware path '%s'" % (self._fw_path))
 
     async def run(self) -> None:
@@ -832,13 +841,13 @@ class CanSocket(BaseSocket):
             await flasher.connect_btl()
             await flasher.verify_canbus_uuid(self._uuid)
             if not self.is_status_req:
-                await flasher.send_file()
+                await flasher.send_file(dry_run=self.is_compare_req)
                 await flasher.verify_file()
         finally:
             # always attempt to send the complete command. If
             # there is an error it will exit the bootloader
             # unless comms were broken
-            if self.is_flash_req:
+            if self.is_flash_req or self.is_compare_req:
                 await flasher.finish()
 
     def close(self):
@@ -1067,13 +1076,13 @@ class SerialSocket(BaseSocket):
                 flasher.prime()
             await flasher.connect_btl()
             if not self.is_status_req:
-                await flasher.send_file()
+                await flasher.send_file(dry_run=self.is_compare_req)
                 await flasher.verify_file()
         finally:
             # always attempt to send the complete command. If
             # there is an error it will exit the bootloader
             # unless comms were broken
-            if self.is_flash_req:
+            if self.is_flash_req or self.is_compare_req:
                 await flasher.finish()
 
     def close(self):
@@ -1113,6 +1122,8 @@ async def main(args: argparse.Namespace) -> int:
         output_line("Bootloader Request Complete")
     elif sock.is_status_req:
         output_line("Status Request Complete")
+    elif sock.is_compare_req:
+        output_line("Compare Request Complete")
     else:
         output_line("Programming Complete")
     return 0
@@ -1143,7 +1154,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "-q", "--query", action="store_true",
-        help="Query available CAN UUIDs (CANBus Ony)"
+        help="Query available CAN UUIDs (CANBus Only)"
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true",
@@ -1156,6 +1167,10 @@ if __name__ == '__main__':
     parser.add_argument(
         "-s", "--status", action="store_true",
         help="Connect to bootloader and print status"
+    )
+    parser.add_argument(
+        "-c", "--compare-only", action="store_true",
+        help="Compare firmware with file specified but don't flash. Exits bootloader when done."
     )
     args = parser.parse_args()
     exit(asyncio.run(main(args)))
