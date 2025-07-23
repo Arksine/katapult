@@ -322,7 +322,8 @@ class CanFlasher:
         self,
         cmdname: str,
         payload: bytes = b"",
-        tries: int = 5
+        tries: int = 5,
+        read_timeout: float = 2.0
     ) -> bytearray:
         cmd = BOOTLOADER_CMDS[cmdname]
         out_cmd = self._build_command(cmd, payload)
@@ -334,7 +335,7 @@ class CanFlasher:
                 self.node.write(out_cmd)
                 read_done = False
                 while not read_done:
-                    ret = await self.node.readuntil(CMD_TRAILER)
+                    ret = await self.node.readuntil(CMD_TRAILER, read_timeout)
                     data.extend(ret)
                     while len(data) > 7:
                         if data[:2] != CMD_HEADER:
@@ -424,7 +425,14 @@ class CanFlasher:
                 self.fw_sha.update(buf)
                 prefix = struct.pack("<I", flash_address)
                 for _ in range(3):
-                    resp = await self.send_command('SEND_BLOCK', prefix + buf)
+                    try:
+                        resp = await self.send_command(
+                            'SEND_BLOCK', prefix + buf, 3, 5.0
+                        )
+                    except FlashError as e:
+                        raise FlashError(
+                            f"Flash write failed, flash address 0x{flash_address:4X}"
+                        ) from e
                     recd_addr, = struct.unpack("<I", resp)
                     if recd_addr == flash_address:
                         break
