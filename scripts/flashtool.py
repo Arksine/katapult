@@ -774,14 +774,14 @@ class CanSocket(BaseSocket):
                         f"to a uuid for device {item.name}"
                     )
                     logging.exception("UUID conversion failed")
-                    return
-                logging.info(
-                    f"Detected UUID: {det_uuid:x}, provided UUID: {self._uuid:x}"
-                )
-                if det_uuid == self._uuid:
-                    self._can_bridge_path = item
-                    output_line(f"Canbus Bridge detected at {item}")
-            break
+                else:
+                    logging.info(
+                        f"Detected UUID: {det_uuid:x}, provided UUID: {self._uuid:x}"
+                    )
+                    if det_uuid == self._uuid:
+                        self._can_bridge_path = item
+                        output_line(f"Canbus Bridge detected at {item}")
+                        break
 
     async def _wait_canbridge_reset(self) -> None:
         if self._can_bridge_path is None:
