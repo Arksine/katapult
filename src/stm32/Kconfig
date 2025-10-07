@@ -82,7 +82,7 @@ choice
         bool "STM32H743"
         select MACH_STM32H7
     config MACH_STM32H750
-        bool "STM32H750"
+        bool "STM32H750" if 0
         select MACH_STM32H7
     config MACH_STM32L412
         bool "STM32L412" if 0
