@@ -85,6 +85,8 @@ command_read_block(uint32_t *data)
 void
 command_write_block(uint32_t *data)
 {
+    if (!is_in_transfer)
+        flash_flag_erase();  // invalidate flag before first write
     is_in_transfer = 1;
     if (command_get_arg_count(data) != (CONFIG_BLOCK_SIZE / 4) + 1)
         goto fail;
@@ -111,6 +113,7 @@ command_eof(uint32_t *data)
         command_respond_command_error();
         return;
     }
+    flash_flag_write();  // mark flash as successfully completed
     uint32_t out[4];
     out[2] = cpu_to_le32(ret);
     command_respond_ack(CMD_RX_EOF, out, ARRAY_SIZE(out));

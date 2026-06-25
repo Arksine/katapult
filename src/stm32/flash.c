@@ -245,3 +245,34 @@ flash_complete(void)
 {
     return page_write_count;
 }
+
+/* 2KB flag page immediately before config storage (0x0801E000).
+ * Erased at the start of a flash session; magic written on successful completion.
+ */
+#define FLASH_FLAG_ADDRESS  0x0801D800U
+#define FLASH_COMPLETE_MAGIC 0x00000001UL
+
+void
+flash_flag_erase(void)
+{
+    unlock_flash();
+    erase_page(FLASH_FLAG_ADDRESS);
+    lock_flash();
+}
+
+void
+flash_flag_write(void)
+{
+    uint32_t data[CONFIG_BLOCK_SIZE / 4];
+    memset(data, 0, sizeof(data));
+    data[0] = FLASH_COMPLETE_MAGIC;
+    unlock_flash();
+    write_block(FLASH_FLAG_ADDRESS, data);
+    lock_flash();
+}
+
+int
+flash_flag_check(void)
+{
+    return *(volatile uint32_t *)FLASH_FLAG_ADDRESS == FLASH_COMPLETE_MAGIC;
+}
