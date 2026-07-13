@@ -81,6 +81,9 @@ command_dispatch(uint8_t *buf, uint_fast8_t msglen)
         case CMD_COMPLETE:
             command_complete(data);
             break;
+        case CMD_DFU:
+            command_dfu(data);
+            break;
         case CMD_GET_CANBUS_ID:
             if (CONFIG_CANSERIAL) {
                 command_get_canbus_id(data);

@@ -151,6 +151,7 @@ options:
   -v, --verbose         Enable verbose responses
   -r, --request-bootloader
                         Requests the bootloader and exits
+  --request-dfu         Requests the device reboot into ROM DFU mode and exits
   -s, --status          Connect to bootloader and print status
 ```
 
@@ -182,6 +183,26 @@ bridge mode". These devices upload firmware using DFU and/or Katapult-USB. This
 option allows the user to enter the bootloader without physical access to the
 board, then use the appropriate tool (`dfu-util` or `flashtool.py -d`) to
 upload the new binary.
+
+### Request ROM DFU Bootloader and Exit
+
+When the `--request-dfu` option is supplied `flashtool` asks Katapult to
+reboot the MCU into the ROM DFU bootloader (e.g. `0483:df11` on STM32).
+Flashtool will then immediately exit; use `dfu-util` to upload a new binary.
+
+This is only needed when updating **Katapult itself** on a board whose
+BOOT0/RESET buttons are inaccessible — application firmware (i.e. Klipper)
+should be flashed through Katapult as usual and never requires DFU.
+
+The option works over both transports: with `-d <serial device>` a device
+running Klipper is first rebooted into Katapult, then asked to enter DFU;
+with `-i <interface> -u <uuid>` the same applies, including "USB to CAN
+bridge mode" devices (flashtool follows the bridge to its Katapult USB serial
+device automatically).
+
+Requires Katapult built from a source tree that includes DFU support on an
+STM32 with a USB-capable ROM bootloader. When unsupported, the request is
+rejected and the device remains in the bootloader.
 
 Additionally, the `-r` option can be used with devices connected to the host
 over a UART connection to request Klipper's bootloader.
