@@ -753,10 +753,13 @@ class CanSocket(BaseSocket):
             if not item.joinpath("bDeviceClass").is_file():
                 continue
             usb_info = get_usb_info(item)
-            if (
-                usb_info["usb_id"] != GS_CAN_USB_ID or
-                usb_info["manufacturer"] != "klipper"
-            ):
+            # Match on the gs_usb VID:PID only.  The manufacturer string is
+            # configurable in Klipper (CONFIG_USB_MANUFACTURER) and differs
+            # on forks (e.g. "Kalico"), so it cannot be relied upon.  The
+            # can interface ownership check below and the serial number to
+            # UUID comparison that follows are sufficient to identify the
+            # bridge.
+            if usb_info["usb_id"] != GS_CAN_USB_ID:
                 continue
             if not list(item.glob(f"{item.name}:*/net/{can_intf}")):
                 continue
