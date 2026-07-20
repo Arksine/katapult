@@ -122,6 +122,10 @@ config ENABLE_DOUBLE_RESET
     bool "Support bootloader entry on rapid double click of reset button"
     default y
 
+config AUTO_JUMP_TIMEOUT
+    int "Seconds to wait in bootloader before auto-jumping to the application"
+    default 10
+
 config ENABLE_BUTTON
     bool "Enable bootloader entry on button (or gpio) state"
     default n

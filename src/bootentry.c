@@ -52,7 +52,9 @@ check_double_reset(void)
     return 0;
 }
 
-// Auto-jump to app after 5s if no explicit bootloader request was made
+// Auto-jump to app after CONFIG_AUTO_JUMP_TIMEOUT if no explicit
+// bootloader request was made
+#define AUTO_JUMP_TIMEOUT_US (CONFIG_AUTO_JUMP_TIMEOUT * 1000000)
 static uint8_t auto_jump_active;
 static uint32_t auto_jump_endtime;
 
@@ -62,7 +64,7 @@ auto_jump_task(void)
     if (!auto_jump_active)
         return;
     if (flashcmd_is_in_transfer())
-        auto_jump_endtime = timer_read_time() + timer_from_us(10000000);
+        auto_jump_endtime = timer_read_time() + timer_from_us(AUTO_JUMP_TIMEOUT_US);
     if (timer_is_before(timer_read_time(), auto_jump_endtime))
         return;
     application_jump();
@@ -85,8 +87,8 @@ bootentry_check(void)
     }
     if (check_double_reset())
         return 1;
-    // Valid app, no explicit request: stay in bootloader for 10s then auto-jump
-    auto_jump_endtime = timer_read_time() + timer_from_us(10000000);
+    // Valid app, no explicit request: stay in bootloader, then auto-jump
+    auto_jump_endtime = timer_read_time() + timer_from_us(AUTO_JUMP_TIMEOUT_US);
     auto_jump_active = 1;
     return 1;
 }
