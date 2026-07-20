@@ -246,10 +246,11 @@ flash_complete(void)
     return page_write_count;
 }
 
-/* 2KB flag page immediately before config storage (0x0801E000).
+/* Reserved page immediately below the application start (see
+ * CONFIG_STM32_RESERVE_FLASH_FLAG / armcm_link.lds.S).
  * Erased at the start of a flash session; magic written on successful completion.
  */
-#define FLASH_FLAG_ADDRESS  0x0801D800U
+#define FLASH_FLAG_ADDRESS  (CONFIG_LAUNCH_APP_ADDRESS - CONFIG_FLASH_FLAG_SIZE)
 #define FLASH_COMPLETE_MAGIC 0x00000001UL
 
 void

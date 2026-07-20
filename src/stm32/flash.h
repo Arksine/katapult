@@ -6,7 +6,8 @@
 int flash_write_block(uint32_t block_address, uint32_t *data);
 int flash_complete(void);
 
-/* Flash complete flag — 2KB page at 0x0801D800 (between app and config storage).
+/* Flash complete flag — reserved page immediately below the application
+ * start (CONFIG_STM32_RESERVE_FLASH_FLAG, see armcm_link.lds.S).
  * Present (magic written) = last flash completed successfully.
  * Absent (erased, 0xFF)   = flash incomplete or never run; bootloader stays indefinitely.
  */
