@@ -80,7 +80,10 @@ bootentry_check(void)
     // - No application code is present
     uint64_t bootup_code = get_bootup_code();
     if (bootup_code == REQUEST_CANBOOT || !application_check_valid()
-        || !flash_flag_check() || check_button_pressed()) {
+#if CONFIG_MACH_STM32
+        || !flash_flag_check()
+#endif
+        || check_button_pressed()) {
         // Start bootloader main loop indefinitely
         set_bootup_code(0);
         return 1;

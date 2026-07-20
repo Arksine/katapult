@@ -147,6 +147,11 @@ config BUILD_DEPLOYER
     default y if FLASH_APPLICATION_ADDRESS != FLASH_BOOT_ADDRESS
     default n
 
+config FLASH_FLAG_SIZE
+    hex
+    default 0x800 if STM32_RESERVE_FLASH_FLAG
+    default 0x0
+
 # The HAVE_x options allow boards to disable support for some commands
 # if the hardware does not support the feature.
 config HAVE_CHIPID
