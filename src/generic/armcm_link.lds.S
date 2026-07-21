@@ -80,6 +80,7 @@ SECTIONS
     .flash_flag (NOLOAD) :
     {
         _flash_flag_start = .;
+        _unused_flash_flag_start = . + 4; // flash flag only uses first 4 bytes, rest unused
         . = . + CONFIG_FLASH_FLAG_SIZE;
     } > flashflag
 #endif
