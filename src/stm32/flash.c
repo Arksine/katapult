@@ -253,7 +253,7 @@ flash_complete(void)
  */
 extern uint32_t _flash_flag_start;
 #define FLASH_FLAG_ADDRESS  ((uint32_t)&_flash_flag_start)
-#define FLASH_COMPLETE_MAGIC 0x00000001UL
+#define FLASH_COMPLETE_MAGIC 0x7C4A8D3FUL
 
 void
 flash_flag_erase(void)
