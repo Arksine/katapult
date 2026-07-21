@@ -63,8 +63,12 @@ auto_jump_task(void)
 {
     if (!auto_jump_active)
         return;
-    if (flashcmd_is_in_transfer())
-        auto_jump_endtime = timer_read_time() + timer_from_us(AUTO_JUMP_TIMEOUT_US);
+    if (flashcmd_is_in_transfer()) {
+        // A flash session has started - defer to the explicit
+        // CMD_COMPLETE handshake before jumping to application (see flashcmd.c: complete_task)
+        auto_jump_active = 0;
+        return;
+    }
     if (timer_is_before(timer_read_time(), auto_jump_endtime))
         return;
     application_jump();
