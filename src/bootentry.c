@@ -80,7 +80,7 @@ bootentry_check(void)
     // - No application code is present
     uint64_t bootup_code = get_bootup_code();
     if (bootup_code == REQUEST_CANBOOT || !application_check_valid()
-#if CONFIG_MACH_STM32
+#if CONFIG_FLASH_FLAG_SIZE
         || !flash_flag_check()
 #endif
         || check_button_pressed()) {

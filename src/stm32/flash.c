@@ -246,11 +246,13 @@ flash_complete(void)
     return page_write_count;
 }
 
-/* Reserved page immediately below the application start (see
+#if CONFIG_FLASH_FLAG_SIZE
+/* Reserved page immediately before the application start (see
  * CONFIG_STM32_RESERVE_FLASH_FLAG / armcm_link.lds.S).
  * Erased at the start of a flash session; magic written on successful completion.
  */
-#define FLASH_FLAG_ADDRESS  (CONFIG_LAUNCH_APP_ADDRESS - CONFIG_FLASH_FLAG_SIZE)
+extern uint32_t _flash_flag_start;
+#define FLASH_FLAG_ADDRESS  ((uint32_t)&_flash_flag_start)
 #define FLASH_COMPLETE_MAGIC 0x00000001UL
 
 void
@@ -277,3 +279,4 @@ flash_flag_check(void)
 {
     return *(volatile uint32_t *)FLASH_FLAG_ADDRESS == FLASH_COMPLETE_MAGIC;
 }
+#endif

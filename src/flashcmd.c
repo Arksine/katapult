@@ -85,7 +85,7 @@ command_read_block(uint32_t *data)
 void
 command_write_block(uint32_t *data)
 {
-#if CONFIG_MACH_STM32
+#if CONFIG_FLASH_FLAG_SIZE
     if (!is_in_transfer)
         flash_flag_erase();  // invalidate flag before first write
 #endif
@@ -115,7 +115,7 @@ command_eof(uint32_t *data)
         command_respond_command_error();
         return;
     }
-#if CONFIG_MACH_STM32
+#if CONFIG_FLASH_FLAG_SIZE
     flash_flag_write();  // mark flash as successfully completed
 #endif
     uint32_t out[4];

@@ -79,6 +79,7 @@ SECTIONS
 #if CONFIG_FLASH_FLAG_SIZE
     .flash_flag (NOLOAD) :
     {
+        _flash_flag_start = .;
         . = . + CONFIG_FLASH_FLAG_SIZE;
     } > flashflag
 #endif

@@ -2,11 +2,13 @@
 #define __STM32_FLASH_H
 
 #include <stdint.h>
+#include "autoconf.h" // CONFIG_FLASH_FLAG_SIZE
 
 int flash_write_block(uint32_t block_address, uint32_t *data);
 int flash_complete(void);
 
-/* Flash complete flag — reserved page immediately below the application
+#if CONFIG_FLASH_FLAG_SIZE
+/* Flash complete flag — reserved page immediately before the application
  * start (CONFIG_STM32_RESERVE_FLASH_FLAG, see armcm_link.lds.S).
  * Present (magic written) = last flash completed successfully.
  * Absent (erased, 0xFF)   = flash incomplete or never run; bootloader stays indefinitely.
@@ -14,5 +16,6 @@ int flash_complete(void);
 void flash_flag_erase(void);
 void flash_flag_write(void);
 int flash_flag_check(void);
+#endif
 
 #endif
