@@ -67,6 +67,19 @@ wait_flash(void)
         ;
 }
 
+// Clear status left by a previous STM32H7 erase/program operation
+static void
+clear_flash_status(void)
+{
+#if CONFIG_MACH_STM32H7
+    FLASH->CCR1 = (FLASH_CCR_CLR_EOP | FLASH_CCR_CLR_WRPERR
+                   | FLASH_CCR_CLR_PGSERR | FLASH_CCR_CLR_STRBERR
+                   | FLASH_CCR_CLR_INCERR | FLASH_CCR_CLR_OPERR
+                   | FLASH_CCR_CLR_RDPERR | FLASH_CCR_CLR_RDSERR
+                   | FLASH_CCR_CLR_SNECCERR | FLASH_CCR_CLR_DBECCERR);
+#endif
+}
+
 #ifndef FLASH_KEY1 // Some stm32 headers don't define this
 #define FLASH_KEY1 (0x45670123UL)
 #define FLASH_KEY2 (0xCDEF89ABUL)
@@ -82,6 +95,7 @@ unlock_flash(void)
         FLASH->KEYR = FLASH_KEY2;
     }
     wait_flash();
+    clear_flash_status();
 }
 
 // Place low-level flash hardware into a locked state
