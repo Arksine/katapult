@@ -267,7 +267,7 @@ void
 flash_flag_write(void)
 {
     uint32_t data[CONFIG_BLOCK_SIZE / 4];
-    memset(data, 0, sizeof(data));
+    memset(data, 0xff, sizeof(data));
     data[0] = FLASH_COMPLETE_MAGIC;
     unlock_flash();
     write_block(FLASH_FLAG_ADDRESS, data);
