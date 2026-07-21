@@ -14,7 +14,7 @@ MEMORY
 #if CONFIG_FLASH_FLAG_SIZE
   rom (rx) : ORIGIN = CONFIG_FLASH_START , LENGTH = CONFIG_LAUNCH_APP_ADDRESS - CONFIG_FLASH_START - CONFIG_FLASH_FLAG_SIZE
   // Page reserved for the flash-completion flag (see stm32/flash.c: flash_flag_*),
-  // sitting immediately below the application start.
+  // sitting immediately before the application start.
   flashflag (rx) : ORIGIN = CONFIG_LAUNCH_APP_ADDRESS - CONFIG_FLASH_FLAG_SIZE , LENGTH = CONFIG_FLASH_FLAG_SIZE
 #else
   rom (rx) : ORIGIN = CONFIG_FLASH_START , LENGTH = CONFIG_FLASH_SIZE
