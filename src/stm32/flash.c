@@ -246,7 +246,7 @@ flash_complete(void)
     return page_write_count;
 }
 
-#if CONFIG_FLASH_FLAG_SIZE
+#if CONFIG_STM32_RESERVE_FLASH_FLAG
 /* Reserved page immediately before the application start (see
  * CONFIG_STM32_RESERVE_FLASH_FLAG / armcm_link.lds.S).
  * Erased at the start of a flash session; magic written on successful completion.

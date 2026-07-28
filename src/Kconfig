@@ -122,7 +122,7 @@ config ENABLE_DOUBLE_RESET
     bool "Support bootloader entry on rapid double click of reset button"
     default y
 
-config AUTO_JUMP_TIMEOUT
+config AUTO_JUMP_TIMEOUT_S
     int "Seconds to wait in bootloader before auto-jumping to the application"
     default 10
 
@@ -146,11 +146,6 @@ config BUILD_DEPLOYER
     bool
     default y if FLASH_APPLICATION_ADDRESS != FLASH_BOOT_ADDRESS
     default n
-
-config FLASH_FLAG_SIZE
-    hex
-    default 0x800 if STM32_RESERVE_FLASH_FLAG
-    default 0x0
 
 # The HAVE_x options allow boards to disable support for some commands
 # if the hardware does not support the feature.

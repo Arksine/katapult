@@ -52,9 +52,9 @@ check_double_reset(void)
     return 0;
 }
 
-// Auto-jump to app after CONFIG_AUTO_JUMP_TIMEOUT seconds if no
+// Auto-jump to app after CONFIG_AUTO_JUMP_TIMEOUT_S seconds if no
 // explicit bootloader request was made
-#define AUTO_JUMP_TIMEOUT_US (CONFIG_AUTO_JUMP_TIMEOUT * 1000000)
+#define AUTO_JUMP_TIMEOUT_US (CONFIG_AUTO_JUMP_TIMEOUT_S * 1000000)
 static uint8_t auto_jump_active;
 static uint32_t auto_jump_endtime;
 
@@ -84,7 +84,7 @@ bootentry_check(void)
     // - No application code is present
     uint64_t bootup_code = get_bootup_code();
     if (bootup_code == REQUEST_CANBOOT || !application_check_valid()
-#if CONFIG_FLASH_FLAG_SIZE
+#if CONFIG_STM32_RESERVE_FLASH_FLAG
         || !flash_flag_check()
 #endif
         || check_button_pressed()) {

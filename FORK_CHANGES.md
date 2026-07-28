@@ -12,7 +12,7 @@ application.
 
 ### 1. Configurable auto-jump timeout
 
-- New Kconfig option `CONFIG_AUTO_JUMP_TIMEOUT` (default: 10s).
+- New Kconfig option `CONFIG_AUTO_JUMP_TIMEOUT_S` (default: 10s).
 - Previously, `bootentry_check()` jumped straight to a valid application at
   boot with no window to intervene. It now stays in the bootloader for
   `CONFIG_AUTO_JUMP_TIMEOUT` seconds instead, so the device is reachable for
@@ -39,9 +39,8 @@ application.
   application as bootable — if a flash session gets interrupted (power
   loss, dropped connection), the flag is absent, so the bootloader stays
   resident instead of jumping into a partially-written application.
-- Fully opt-in: `CONFIG_FLASH_FLAG_SIZE` defaults to `0`, which compiles the
-  feature out completely (no layout or behavior change) unless a board
-  enables `STM32_RESERVE_FLASH_FLAG`.
+- Fully opt-in: `CONFIG_STM32_RESERVE_FLASH_FLAG` defaults to `no`, which compiles  the feature out completely (no layout or behavior change) unless a board
+  enables `CONFIG_STM32_RESERVE_FLASH_FLAG`.
 
 ### Files changed
 - `src/Kconfig`, `src/stm32/Kconfig` — new options.

@@ -9,9 +9,10 @@
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")
 OUTPUT_ARCH(arm)
 
+
 MEMORY
 {
-#if CONFIG_FLASH_FLAG_SIZE
+#if CONFIG_STM32_RESERVE_FLASH_FLAG
   rom (rx) : ORIGIN = CONFIG_FLASH_START , LENGTH = CONFIG_LAUNCH_APP_ADDRESS - CONFIG_FLASH_START - CONFIG_FLASH_FLAG_SIZE
   // Page reserved for the flash-completion flag (see stm32/flash.c: flash_flag_*),
   // sitting immediately before the application start.
@@ -76,7 +77,7 @@ SECTIONS
         . = . + 8;
     } > ram
 
-#if CONFIG_FLASH_FLAG_SIZE
+#if CONFIG_STM32_RESERVE_FLASH_FLAG
     .flash_flag (NOLOAD) :
     {
         _flash_flag_start = .;

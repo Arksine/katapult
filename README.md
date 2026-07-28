@@ -1,3 +1,7 @@
+# Bootloader: forked from https://github.com/Arksine/katapult
+
+The original katapult bootloader was adjusted to fit our needs when flashing sensor boards in a drone via CAN. An overview over the changes made can be found in FORK_CHANGES.md. The original README.md in the following:
+
 # Katapult  (formerly known as CanBoot)
  Bootloader for ARM Cortex-M MCUs
 

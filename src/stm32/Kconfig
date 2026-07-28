@@ -518,6 +518,11 @@ config LAUNCH_APP_ADDRESS
 config STM32_RESERVE_FLASH_FLAG
     bool "Reserve a flash page below the application for a flash-completion flag"
     default n
+if STM32_RESERVE_FLASH_FLAG
+    config FLASH_FLAG_SIZE 
+        hex
+        default 0x800
+endif
 
 config BLOCK_SIZE
     int
