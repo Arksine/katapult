@@ -7,8 +7,8 @@
  down to keep the footprint minimal. In addition to CAN, Katapult now
  supports USB and UART interfaces.
 
-Currently lpc176x, stm32 and rp2040 MCUs are supported.  CAN support is currently
-limited to stm32 F-series and rp2040 devices.
+Currently lpc176x, stm32, rp2040, and rp2350 MCUs are supported.  CAN support is
+currently limited to stm32 F-series, rp2040, and rp2350 devices.
 
 Katapult is licensed under the [GNU GPL v3](/LICENSE).
 
@@ -71,12 +71,11 @@ Doing so allows Katapult to detect that no application is present and enter
 the bootloader.  This is required to enter the bootloader if you have not
 configured an alternative method of entry.
 
-NOTE RP2040: To flash rp2040 targets mcu should be rebooted in system boot mode
-(usually with _BOOT_ button pressed). After that `make flash` command
-could be used. You could also use rp2040 specific mass storage device
-drag-and-drop method to flash `katapult.uf2` from `out` folder. Flashing Katapult
-will erase main application (i.e. klipper), so it should be uploaded
-with Katapult again.
+NOTE RP2040/RP2350: To flash rp2040 and rp2350 targets the MCU should be rebooted
+in system boot mode (usually with _BOOT_ button pressed). After that `make flash`
+command could be used. You could also use the mass storage device drag-and-drop
+method to flash `katapult.uf2` from the `out` folder. Flashing Katapult will erase
+the main application (i.e. klipper), so it should be uploaded with Katapult again.
 
 ## Uploading Klipper
 1) Make sure the `klipper` service stopped.
