@@ -121,6 +121,11 @@ n32g45x_pll_multiplier_bits(uint32_t mul)
 static void
 clock_setup_n32g45x(void)
 {
+#if !CONFIG_STM32_CLOCK_REF_INTERNAL \
+    && (2 * CONFIG_CLOCK_FREQ) % CONFIG_CLOCK_REF_FREQ \
+    && CONFIG_MACH_N32G45x
+    #error "Unable to generate the requested clock rate from this crystal"
+#endif
     // The n32g45x keeps its adc, sdio, qspi, opamp, comp and can2 behind
     // the "ex mode" bit: while it is clear their RCC enable bits read back
     // as zero and the peripherals stay unclocked.  The vendor SystemInit()
@@ -154,9 +159,9 @@ clock_setup_n32g45x(void)
         cfgr |= RCC_CFGR_PPRE1_DIV4 | RCC_CFGR_PPRE2_DIV4;
     else if (CONFIG_CLOCK_FREQ > 36000000)
         cfgr |= RCC_CFGR_PPRE1_DIV2 | RCC_CFGR_PPRE2_DIV2;
-    // The n32g45x usb clock is PLLCLK divided by 1.5, 1, 2 or 3.  Of the
-    // three system clock rates this chip's Kconfig offers (64/96/128Mhz),
-    // only 96Mhz (PLLCLK/2) produces the 48Mhz the usb peripheral needs.
+    // The n32g45x usb clock is PLLCLK divided by 1.5, 1, 2 or 3.  The
+    // clock defaults select 96Mhz when usb is enabled, which produces
+    // the 48Mhz the usb peripheral needs through the /2 divisor.
     if (CONFIG_CLOCK_FREQ == 96000000)
         cfgr |= 2 << 22;
 #if CONFIG_MACH_N32G45x && CONFIG_USB && CONFIG_CLOCK_FREQ != 96000000
