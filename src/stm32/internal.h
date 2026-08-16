@@ -22,6 +22,13 @@
 #include "stm32l4xx.h"
 #endif
 
+#if CONFIG_MACH_N32G45x
+// The n32g45x builds against the stm32f103 headers, but it stores its
+// 96bit unique device id at a different address
+#undef UID_BASE
+#define UID_BASE 0x1FFFF7F0UL
+#endif
+
 // gpio.c
 extern GPIO_TypeDef * const digital_regs[];
 #define GPIO(PORT, NUM) (((PORT)-'A') * 16 + (NUM))
