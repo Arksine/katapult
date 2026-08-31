@@ -8,7 +8,8 @@
  supports USB and UART interfaces.
 
 Currently lpc176x, stm32 and rp2040 MCUs are supported.  CAN support is currently
-limited to stm32 F-series and rp2040 devices.
+limited to stm32 F-series and rp2040 devices.  The Nations N32G45x, an
+stm32f103 compatible device, is supported under the stm32 target.
 
 Katapult is licensed under the [GNU GPL v3](/LICENSE).
 
