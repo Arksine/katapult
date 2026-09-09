@@ -14,12 +14,15 @@ choice
         bool "LPC176x (Smoothieboard)"
     config MACH_STM32
         bool "STMicroelectronics STM32"
+    config MACH_GD32
+        bool "GigaDevice GD32"
     config MACH_RPXXXX
         bool "Raspberry Pi RP2040/RP235x"
 endchoice
 
 source "src/lpc176x/Kconfig"
 source "src/stm32/Kconfig"
+source "src/gd32/Kconfig"
 source "src/rp2040/Kconfig"
 
 # Generic configuration options for serial ports
