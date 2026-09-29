@@ -12,8 +12,11 @@ dirs-$(CONFIG_MACH_STM32G0) += lib/stm32g0
 dirs-$(CONFIG_MACH_STM32G4) += lib/stm32g4
 dirs-$(CONFIG_MACH_STM32H7) += lib/stm32h7
 
-MCU := $(shell echo $(CONFIG_MCU))
-MCU_UPPER := $(shell echo $(CONFIG_MCU) | tr a-z A-Z | tr X x)
+MCU_CONFIG := $(shell echo $(CONFIG_MCU))
+MCU-y := $(MCU_CONFIG)
+MCU-$(CONFIG_MACH_GD32F425) := stm32f407xx
+MCU := $(MCU-y)
+MCU_UPPER := $(shell echo $(MCU) | tr a-z A-Z | tr X x)
 
 CFLAGS-$(CONFIG_MACH_STM32F0) += -mcpu=cortex-m0 -Ilib/stm32f0/include
 CFLAGS-$(CONFIG_MACH_STM32F1) += -mcpu=cortex-m3 -Ilib/stm32f1/include

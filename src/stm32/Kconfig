@@ -43,6 +43,11 @@ choice
         bool "STM32F407"
         select MACH_STM32F4
         select MACH_STM32F4x5
+    config MACH_GD32F425
+        bool "GigaDevice GD32F425"
+        select MACH_STM32F4
+        select MACH_STM32F4x5
+        select STM32F4_GD32_USB if USBSERIAL
     config MACH_STM32F429
         bool "STM32F429"
         select MACH_STM32F4
@@ -142,6 +147,7 @@ config MCU
     default "stm32f401xc" if MACH_STM32F401
     default "stm32f405xx" if MACH_STM32F405
     default "stm32f407xx" if MACH_STM32F407
+    default "gd32f425" if MACH_GD32F425
     default "stm32f429xx" if MACH_STM32F429
     default "stm32f446xx" if MACH_STM32F446
     default "stm32g0b0xx" if MACH_STM32G0B0
