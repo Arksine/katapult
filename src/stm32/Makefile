@@ -22,7 +22,8 @@ MCU := $(MCU-y)
 MCU_UPPER := $(shell echo $(MCU) | tr a-z A-Z | tr X x)
 
 CFLAGS-$(CONFIG_MACH_STM32F0) += -mcpu=cortex-m0 -Ilib/stm32f0/include
-CFLAGS-$(CONFIG_MACH_STM32F1) += -mcpu=cortex-m3 -Ilib/stm32f1/include
+CFLAGS-$(CONFIG_MACH_STM32F103) += -mcpu=cortex-m3
+CFLAGS-$(CONFIG_MACH_STM32F1) += -Ilib/stm32f1/include
 CFLAGS-$(CONFIG_MACH_GD32F303XX) += -mcpu=cortex-m4
 CFLAGS-$(CONFIG_MACH_GD32E23X) += -DGD32E230 -mcpu=cortex-m23
 CFLAGS-$(CONFIG_MACH_GD32E23X) += -Ilib/gd32e23x/include
