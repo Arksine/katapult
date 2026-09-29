@@ -5,7 +5,7 @@
 // This file may be distributed under the terms of the GNU GPLv3 license.
 
 #include "board/armcm_boot.h"
-#include "gd32e23x_internal.h"
+#include "internal.h"
 #include "sched.h"
 
 #define OSC_TIMEOUT 0x000fffffU
@@ -35,8 +35,22 @@ static void clock_setup(void)
 
 void enable_pclock(uint32_t pclk)
 {
+    if (pclk == USART0)
+        pclk = RCU_USART0;
+    else if (pclk == USART1)
+        pclk = RCU_USART1;
     RCU_REG_VAL(pclk) |= BIT(RCU_BIT_POS(pclk));
     (void)RCU_REG_VAL(pclk);
+}
+
+void gpio_clock_enable(GPIO_TypeDef *regs)
+{
+    static const uint32_t gpio_clocks[] = {
+        RCU_GPIOA, RCU_GPIOB, RCU_GPIOC, 0, 0, RCU_GPIOF
+    };
+    uint32_t port = ((uint32_t)regs - GPIO_BASE) / 0x400U;
+    if (port < 6 && gpio_clocks[port])
+        enable_pclock(gpio_clocks[port]);
 }
 
 uint32_t get_pclock_frequency(uint32_t periph_base)

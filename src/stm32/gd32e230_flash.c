@@ -7,8 +7,8 @@
 #include <string.h>
 #include "autoconf.h"
 #include "board/io.h"
-#include "gd32e23x_flash.h"
-#include "gd32e23x_internal.h"
+#include "flash.h"
+#include "internal.h"
 
 #define FLASH_PAGE_SIZE 1024U
 

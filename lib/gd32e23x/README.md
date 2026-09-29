@@ -1,7 +1,7 @@
 # GD32E23x device headers
 
-`include/` contains GD32E23x device headers.  Katapult runtime and flash logic
-belongs in `src/gd32`.
+`include/` contains GD32E23x device headers. Katapult runtime and flash logic
+uses the shared STM32 platform under `src/stm32`.
 
 The headers were copied without content changes from
 https://github.com/CrealityOfficial/Ender-3_V3_KE_Klipper at commit

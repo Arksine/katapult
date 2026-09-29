@@ -21,7 +21,7 @@ flash_get_page_size(uint32_t addr)
             return 64 * 1024;
         else
             return 128 * 1024;
-    } else if (CONFIG_MACH_STM32F103) {
+    } else if (CONFIG_MACH_STM32F103 || CONFIG_MACH_GD32F303XX) {
         // Check for a 1K page size on the stm32f103
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
         return *flash_size < 256 ? 1024 : 2 * 1024;

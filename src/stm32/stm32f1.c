@@ -90,6 +90,77 @@ clock_setup(void)
         ;
 }
 
+// Return the RCC_CFGR bits for STM32F1-compatible chips with the extended
+// five-bit PLL multiplier field (PLLMUL[4] is bit 27).
+static uint32_t
+extended_pll_multiplier_bits(uint32_t mul)
+{
+    if (mul > 16)
+        return ((mul - 17) << RCC_CFGR_PLLMULL_Pos) | (1 << 27);
+    return (mul - 2) << RCC_CFGR_PLLMULL_Pos;
+}
+
+#if CONFIG_MACH_GD32F303XX
+  #if !CONFIG_STM32_CLOCK_REF_INTERNAL \
+      && (2 * CONFIG_CLOCK_FREQ) % CONFIG_CLOCK_REF_FREQ
+    #error "Unable to generate the requested clock rate from this crystal"
+  #endif
+  #if CONFIG_USB && CONFIG_CLOCK_FREQ != 120000000
+    #error "Unable to generate a 48Mhz usb clock at this system clock rate"
+  #endif
+#endif
+
+// GD32F303 is register compatible with STM32F103, but supports a 120MHz
+// system clock and has an extended USB clock divider.
+#define GD32F303_USB_DIV2_5        (2 << 22)
+#define GD32F303_PWR_LDO_HIGH      (3 << 14)
+#define GD32F303_PWR_HIGHDR_ENABLE (1 << 16)
+#define GD32F303_PWR_HIGHDR_READY  (1 << 16)
+#define GD32F303_PWR_HIGHDR_SWITCH (1 << 17)
+#define GD32F303_PWR_SWITCH_READY  (1 << 17)
+
+static void
+clock_setup_gd32f303(void)
+{
+    uint32_t cfgr;
+    if (!CONFIG_STM32_CLOCK_REF_INTERNAL) {
+        RCC->CR |= RCC_CR_HSEON;
+        uint32_t div = CONFIG_CLOCK_FREQ / (CONFIG_CLOCK_REF_FREQ / 2);
+        cfgr = 1 << RCC_CFGR_PLLSRC_Pos;
+        if ((div & 1) && div <= 32)
+            cfgr |= RCC_CFGR_PLLXTPRE_HSE_DIV2;
+        else
+            div /= 2;
+        cfgr |= extended_pll_multiplier_bits(div);
+    } else {
+        uint32_t div2 = (CONFIG_CLOCK_FREQ / 8000000) * 2;
+        cfgr = ((0 << RCC_CFGR_PLLSRC_Pos)
+                | extended_pll_multiplier_bits(div2));
+    }
+    cfgr |= RCC_CFGR_PPRE1_DIV2 | RCC_CFGR_PPRE2_DIV2 | RCC_CFGR_ADCPRE_DIV8;
+    if (CONFIG_USB)
+        cfgr |= GD32F303_USB_DIV2_5;
+    RCC->CFGR = cfgr;
+
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    PWR->CR |= GD32F303_PWR_LDO_HIGH;
+    RCC->CR |= RCC_CR_PLLON;
+    FLASH->ACR = (2 << FLASH_ACR_LATENCY_Pos) | FLASH_ACR_PRFTBE;
+    while (!(RCC->CR & RCC_CR_PLLRDY))
+        ;
+
+    PWR->CR |= GD32F303_PWR_HIGHDR_ENABLE;
+    while (!(PWR->CSR & GD32F303_PWR_HIGHDR_READY))
+        ;
+    PWR->CR |= GD32F303_PWR_HIGHDR_SWITCH;
+    while (!(PWR->CSR & GD32F303_PWR_SWITCH_READY))
+        ;
+
+    RCC->CFGR = cfgr | RCC_CFGR_SW_PLL;
+    while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != RCC_CFGR_SWS_PLL)
+        ;
+}
+
 
 /****************************************************************
  * GPIO setup
@@ -113,7 +184,7 @@ stm32f1_alternative_remap(uint32_t mapr_mask, uint32_t mapr_value)
 void
 gpio_peripheral(uint32_t gpio, uint32_t mode, int pullup)
 {
-    GPIO_TypeDef *regs = digital_regs[GPIO2PORT(gpio)];
+    GPIO_TypeDef *regs = gpio_pin_to_regs(gpio);
 
     // Enable GPIO clock
     gpio_clock_enable(regs);
@@ -270,7 +341,10 @@ armcm_main(void)
     RCC->APB2ENR = 0;
 
     // Setup clocks
-    clock_setup();
+    if (CONFIG_MACH_GD32F303XX)
+        clock_setup_gd32f303();
+    else
+        clock_setup();
 
     // Disable JTAG to free PA15, PB3, PB4
     enable_pclock(AFIO_BASE);

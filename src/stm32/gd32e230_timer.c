@@ -9,7 +9,7 @@
 #include "board/irq.h"
 #include "board/misc.h"
 #include "canboot.h"
-#include "gd32e23x_internal.h"
+#include "internal.h"
 
 static uint32_t timer_high;
 
