@@ -29,6 +29,10 @@ SECTIONS
     . = ALIGN(4);
     _data_flash = .;
 
+    /* Never allow the bootloader image to overlap the configured app. */
+    ASSERT(_data_flash <= CONFIG_LAUNCH_APP_ADDRESS,
+           "Katapult image exceeds configured bootloader region")
+
 #if CONFIG_ARMCM_RAM_VECTORTABLE
     .ram_vectortable (NOLOAD) : {
         _ram_vectortable_start = .;

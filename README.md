@@ -7,8 +7,9 @@
  down to keep the footprint minimal. In addition to CAN, Katapult now
  supports USB and UART interfaces.
 
-Currently lpc176x, stm32 and rp2040 MCUs are supported.  CAN support is currently
-limited to stm32 F-series and rp2040 devices.
+Currently lpc176x, stm32 (including compatible GD32 devices), and rp2040 MCUs
+are supported. CAN support is available on stm32 F-series, GD32F303, and
+rp2040 devices.
 
 Katapult is licensed under the [GNU GPL v3](/LICENSE).
 
