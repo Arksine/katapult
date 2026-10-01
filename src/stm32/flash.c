@@ -32,7 +32,18 @@ flash_get_page_size(uint32_t addr)
             return 2 * 1024;
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
         return *flash_size <= 64 ? 1024 : 2 * 1024;
-    } else if (CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4) {
+    } else if (CONFIG_MACH_STM32G0) {
+        return 2 * 1024;
+    } else if (CONFIG_MACH_STM32G4) {
+        // G474xE in single-bank mode (DBANK=0, default) uses 4KB pages;
+        // all other G4 devices and G474xE in dual-bank mode use 2KB pages.
+#if defined(FLASH_OPTR_DBANK)
+        if (!(FLASH->OPTR & FLASH_OPTR_DBANK)) {
+            uint16_t *flash_size = (void*)FLASHSIZE_BASE;
+            if (*flash_size > 256)
+                return 4 * 1024;
+        }
+#endif
         return 2 * 1024;
     } else if (CONFIG_MACH_STM32H7) {
         return 128 * 1024;
@@ -110,7 +121,7 @@ erase_page(uint32_t page_address)
     FLASH->CR = FLASH_CR_PER;
     FLASH->AR = page_address;
     FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT;
-#elif CONFIG_MACH_STM32G0 || CONFIG_MACH_STM32G4
+#elif CONFIG_MACH_STM32G0
     uint32_t pidx = (page_address - 0x08000000) / (2 * 1024);
     if (pidx >= 64) {
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
@@ -120,6 +131,11 @@ erase_page(uint32_t page_address)
             pidx = pidx < 128 ? pidx : pidx + 256 - 128;
     }
     pidx = pidx > 0x3ff ? 0x3ff : pidx;
+    FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT | (pidx << FLASH_CR_PNB_Pos);
+#elif CONFIG_MACH_STM32G4
+    uint32_t page_size = flash_get_page_size(page_address);
+    uint32_t pidx = (page_address - 0x08000000) / page_size;
+    pidx = pidx > 0x7f ? 0x7f : pidx;
     FLASH->CR = FLASH_CR_PER | FLASH_CR_STRT | (pidx << FLASH_CR_PNB_Pos);
 #elif CONFIG_MACH_STM32H7
     uint32_t snb = (page_address - 0x08000000) / (128 * 1024);
