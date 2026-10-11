@@ -61,7 +61,8 @@ BOOTLOADER_CMDS = {
     'SEND_EOF': 0x13,
     'REQUEST_BLOCK': 0x14,
     'COMPLETE': 0x15,
-    'GET_CANBUS_ID': 0x16
+    'GET_CANBUS_ID': 0x16,
+    'DFU': 0x17
 }
 
 ACK_SUCCESS = 0xa0
@@ -492,6 +493,11 @@ class CanFlasher:
     async def finish(self):
         await self.send_command("COMPLETE")
 
+    async def request_dfu(self):
+        output_line("Requesting reboot into ROM DFU mode...")
+        await self.send_command("DFU")
+        output_line("DFU request acknowledged")
+
 
 class CanNode:
     def __init__(self, node_id: int, cansocket: CanSocket | SerialSocket) -> None:
@@ -544,11 +550,16 @@ class BaseSocket:
     def is_flash_req(self) -> bool:
         return not (
             self.is_bootloader_req or self.is_status_req or self.is_query
+            or self.is_dfu_req
         )
 
     @property
     def is_bootloader_req(self) -> bool:
         return self._args.request_bootloader
+
+    @property
+    def is_dfu_req(self) -> bool:
+        return self._args.request_dfu
 
     @property
     def is_status_req(self) -> bool:
@@ -819,7 +830,7 @@ class CanSocket(BaseSocket):
         self.cansock.setblocking(False)
         self._loop.add_reader(
             self.cansock.fileno(), self._handle_can_response)
-        if self.is_flash_req or self.is_bootloader_req:
+        if self.is_flash_req or self.is_bootloader_req or self.is_dfu_req:
             self._jump_to_bootloader(self._uuid)
             if self.is_usb_can_bridge:
                 await self._wait_canbridge_reset()
@@ -839,6 +850,9 @@ class CanSocket(BaseSocket):
         try:
             await flasher.connect_btl()
             await flasher.verify_canbus_uuid(self._uuid)
+            if self.is_dfu_req:
+                await flasher.request_dfu()
+                return
             if not self.is_status_req:
                 await flasher.send_file()
                 await flasher.verify_file()
@@ -1074,6 +1088,9 @@ class SerialSocket(BaseSocket):
                 # to respond immediately to the connect command.
                 flasher.prime()
             await flasher.connect_btl()
+            if self.is_dfu_req:
+                await flasher.request_dfu()
+                return
             if not self.is_status_req:
                 await flasher.send_file()
                 await flasher.verify_file()
@@ -1119,6 +1136,8 @@ async def main(args: argparse.Namespace) -> int:
         output_line("CANBus UUID Query Complete")
     elif sock.is_bootloader_req:
         output_line("Bootloader Request Complete")
+    elif sock.is_dfu_req:
+        output_line("DFU Request Complete")
     elif sock.is_status_req:
         output_line("Status Request Complete")
     else:
@@ -1160,6 +1179,10 @@ if __name__ == '__main__':
     parser.add_argument(
         "-r", "--request-bootloader", action="store_true",
         help="Requests the bootloader and exits"
+    )
+    parser.add_argument(
+        "--request-dfu", action="store_true",
+        help="Requests the device reboot into ROM DFU mode and exits"
     )
     parser.add_argument(
         "-s", "--status", action="store_true",

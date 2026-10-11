@@ -60,6 +60,39 @@ DECL_TASK(complete_task);
 
 
 /****************************************************************
+ * Command "dfu" handling
+ ****************************************************************/
+
+void dfu_reboot(void); // provided by stm32 board code
+
+static uint8_t dfu_requested;
+static uint32_t dfu_endtime;
+
+void
+command_dfu(uint32_t *data)
+{
+    if (!CONFIG_MACH_STM32) {
+        // ROM DFU entry only implemented on stm32
+        command_respond_command_error();
+        return;
+    }
+    uint32_t out[3];
+    command_respond_ack(CMD_DFU, out, ARRAY_SIZE(out));
+    dfu_requested = 1;
+    dfu_endtime = timer_read_time() + timer_from_us(100000);
+}
+
+void
+dfu_task(void)
+{
+    if (CONFIG_MACH_STM32 && dfu_requested
+        && timer_is_before(dfu_endtime, timer_read_time()))
+        dfu_reboot();
+}
+DECL_TASK(dfu_task);
+
+
+/****************************************************************
  * Flash commands
  ****************************************************************/
 
