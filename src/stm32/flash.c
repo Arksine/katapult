@@ -21,6 +21,9 @@ flash_get_page_size(uint32_t addr)
             return 64 * 1024;
         else
             return 128 * 1024;
+    } else if (CONFIG_MACH_N32G45x) {
+        // The n32g45x main flash is always made up of 2K pages
+        return 2 * 1024;
     } else if (CONFIG_MACH_STM32F103) {
         // Check for a 1K page size on the stm32f103
         uint16_t *flash_size = (void*)FLASHSIZE_BASE;
@@ -139,6 +142,14 @@ write_block(uint32_t block_address, uint32_t *data)
 #if CONFIG_MACH_STM32F2 || CONFIG_MACH_STM32F4
     uint32_t *page = (void*)block_address;
     FLASH->CR = FLASH_CR_PSIZE_1 | FLASH_CR_PG;
+    for (int i = 0; i < CONFIG_BLOCK_SIZE / 4; i++) {
+        writel(&page[i], data[i]);
+        wait_flash();
+    }
+#elif CONFIG_MACH_N32G45x
+    // The n32g45x flash controller only supports 32bit programming
+    uint32_t *page = (void*)block_address;
+    FLASH->CR = FLASH_CR_PG;
     for (int i = 0; i < CONFIG_BLOCK_SIZE / 4; i++) {
         writel(&page[i], data[i]);
         wait_flash();
