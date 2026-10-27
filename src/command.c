@@ -100,6 +100,7 @@ int_fast8_t
 command_find_block(uint8_t *buf, uint_fast8_t buf_len, uint_fast8_t *pop_count)
 {
     static uint8_t sync_state;
+    uint_fast8_t sync_start = 0;
     if (buf_len && sync_state & CF_NEED_SYNC)
         goto need_sync;
     if (buf_len < MESSAGE_MIN)
@@ -129,9 +130,12 @@ need_more_data:
     return 0;
 error:
     sync_state |= CF_NEED_SYNC;
+    // The block at buf[0] is invalid - don't resync onto its first byte
+    sync_start = 1;
 need_sync: ;
     // Discard bytes until next SYNC found
-    uint8_t *next_sync = memchr(buf, MESSAGE_STX1, buf_len);
+    uint8_t *next_sync = memchr(buf + sync_start, MESSAGE_STX1
+                                , buf_len - sync_start);
     if (next_sync) {
         sync_state &= ~CF_NEED_SYNC;
         *pop_count = next_sync - buf;
